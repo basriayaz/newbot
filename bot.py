@@ -6,17 +6,12 @@ from datetime import datetime, timedelta
 import pytz
 from dotenv import load_dotenv
 from telegram import Bot
-from telegram.error import RetryAfter, TelegramError
 import asyncio
-import random
 import sys
-import schedule
-import time
-from typing import Optional, List, Dict, Any, Tuple
 
-# Configure logging with more detail
+# Logging ayarları
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format='%(asctime)s - %(levelname)s - %(message)s',
     level=logging.INFO,
     handlers=[
         logging.FileHandler('bot.log'),
@@ -25,404 +20,242 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-class ConfigError(Exception):
-    """Configuration related errors"""
-    pass
+# Çevre değişkenlerini yükle
+load_dotenv()
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
+TELEGRAM_CHANNEL_ID = os.getenv('TELEGRAM_CHANNEL_ID')
+API_URL = "https://soccer-api-yeni-503570030595.us-central1.run.app"
 
-class APIError(Exception):
-    """API related errors"""
-    pass
+# Takip edilecek ligler
+LEAGUES = [
+    "Spanish La Liga",
+    "English Premier League", 
+    "German Bundesliga",
+    "France Ligue 1",
+    "Italian Serie A",
+    "Turkey Super Lig",
+    "Uefa Champions League",
+    "Uefa Europa League",
+    "Uefa Conference League"
+]
 
-class TelegramError(Exception):
-    """Telegram related errors"""
-    pass
+# Lig emojileri
+LEAGUE_EMOJIS = {
+    "spanish la liga": "🇪🇸",
+    "english premier league": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+    "german bundesliga": "🇩🇪",
+    "france ligue 1": "🇫🇷",
+    "italian serie a": "🇮🇹",
+    "turkey super lig": "🇹🇷",
+    "uefa champions league": "🏆",
+    "uefa europa league": "🌟",
+    "uefa conference league": "⭐"
+}
 
-class BotConfig:
-    """Bot configuration handler"""
+class SoccerBot:
     def __init__(self):
-        # Load environment variables
-        load_dotenv()
-        
-        # Validate required environment variables
-        self.token = os.getenv('TELEGRAM_TOKEN')
-        self.channel_id = os.getenv('TELEGRAM_CHANNEL_ID')
-        
-        if not self.token:
-            raise ConfigError("TELEGRAM_TOKEN not found in environment variables")
-        if not self.channel_id:
-            raise ConfigError("TELEGRAM_CHANNEL_ID not found in environment variables")
-            
-        # Constants
-        self.api_base_url = "https://soccer-api-yeni-503570030595.us-central1.run.app"
-        self.filtered_leagues = [
-            "Spanish La Liga",
-            "English Premier League", 
-            "German Bundesliga",
-            "France Ligue 1",
-            "Italian Serie A",
-            "Turkey Super Lig",
-            "Uefa Champions League",
-            "Uefa Europa League",
-            "Uefa Conference League"
-        ]
-        
-        # Emojis
-        self.league_emojis = {
-            "spanish la liga": "🇪🇸",
-            "english premier league": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
-            "german bundesliga": "🇩🇪",
-            "france ligue 1": "🇫🇷",
-            "italian serie a": "🇮🇹",
-            "turkey super lig": "🇹🇷",
-            "uefa champions league": "🏆",
-            "uefa europa league": "🌟",
-            "uefa conference league": "⭐"
-        }
-        self.confidence_emojis = ["🎯", "💫", "✨", "🌟", "⚡️", "🔥"]
-
-class MatchAnalyzer:
-    """Handle match analysis and API calls"""
-    def __init__(self, config: BotConfig):
-        self.config = config
+        self.bot = Bot(token=TELEGRAM_TOKEN)
         self.session = requests.Session()
-        # Set timeouts
-        self.fetch_timeout = 30  # 30 seconds for fetching match list
-        self.analyze_timeout = 20  # 20 seconds for analyzing single match
-        
-    async def fetch_matches(self, date_str: str) -> List[Dict[str, Any]]:
-        """Fetch matches for given date with error handling"""
-        try:
-            response = self.session.post(
-                f"{self.config.api_base_url}/fetch-matches",
-                json={"date": date_str},
-                timeout=self.fetch_timeout
-            )
-            response.raise_for_status()
-            data = response.json()
-            
-            if not isinstance(data, dict) or 'status' not in data or 'data' not in data:
-                raise APIError("Invalid response format from fetch-matches API")
-                
-            if data['status'] != 'success' or not isinstance(data['data'], list):
-                raise APIError(f"API error: {data.get('message', 'Unknown error')}")
-                
-            return data['data']
-            
-        except requests.RequestException as e:
-            logger.error(f"Network error while fetching matches: {str(e)}")
-            raise APIError(f"Failed to fetch matches: {str(e)}")
-        except json.JSONDecodeError as e:
-            logger.error(f"Invalid JSON response while fetching matches: {str(e)}")
-            raise APIError("Invalid response format from API")
-            
-    async def analyze_match(self, match_id: int) -> Optional[Dict[str, Any]]:
-        """Analyze a specific match with error handling and timeout"""
-        try:
-            # Create a future for the request
-            loop = asyncio.get_event_loop()
-            future = loop.run_in_executor(
-                None,
-                lambda: self.session.post(
-                    f"{self.config.api_base_url}/analyze-match",
-                    json={"match_id": match_id},
-                    timeout=self.analyze_timeout
-                )
-            )
-            
-            # Wait for the response with timeout
-            try:
-                response = await asyncio.wait_for(future, timeout=self.analyze_timeout)
-            except asyncio.TimeoutError:
-                logger.warning(f"Analysis timeout for match {match_id} after {self.analyze_timeout} seconds")
-                return None
-                
-            response.raise_for_status()
-            data = response.json()
-            
-            if not isinstance(data, dict) or 'status' not in data:
-                raise APIError("Invalid response format from analyze-match API")
-                
-            if data['status'] != 'success':
-                logger.warning(f"Analysis failed for match {match_id}: {data.get('message', 'Unknown error')}")
-                return None
-                
-            return data
-            
-        except requests.RequestException as e:
-            logger.error(f"Network error while analyzing match {match_id}: {str(e)}")
-            return None
-        except json.JSONDecodeError as e:
-            logger.error(f"Invalid JSON response while analyzing match {match_id}: {str(e)}")
-            return None
-        except Exception as e:
-            logger.error(f"Unexpected error analyzing match {match_id}: {str(e)}")
-            return None
-
-class MessageFormatter:
-    """Handle message formatting"""
-    def __init__(self, config: BotConfig):
-        self.config = config
+        self.is_running = True
         
     def get_league_emoji(self, league_name: str) -> str:
-        """Get emoji for league with fallback"""
-        for key, emoji in self.config.league_emojis.items():
+        """Get emoji for league"""
+        for key, emoji in LEAGUE_EMOJIS.items():
             if key.lower() in league_name.lower():
                 return emoji
         return "⚽️"
-        
-    def format_analysis_message(self, match_data: Tuple, analysis_data: Dict[str, Any]) -> Optional[str]:
-        """Format match analysis into a readable message with error handling"""
+
+    async def send_telegram_message(self, message: str) -> None:
+        """Send message to Telegram channel"""
         try:
-            if not analysis_data or 'data' not in analysis_data:
-                return None
-            
-            data = analysis_data['data']
-            info = data.get('info', {})
-            tahminler = data.get('tahminler', {})
-            
-            # Validate required fields
-            required_fields = ['lig', 'mac', 'mac_tarihi', 'mac_saati']
-            if not all(field in info for field in required_fields):
-                logger.error(f"Missing required fields in match info: {info}")
-                return None
-            
-            # Skip if there's a risky prediction
-            if tahminler.get('riskli_tahmin'):
-                return None
-                
-            # Get league emoji
-            league_emoji = self.get_league_emoji(info['lig'])
-            confidence_emoji = random.choice(self.config.confidence_emojis)
-            
-            # Format message
-            message_parts = []
-            message_parts.append(f"{league_emoji} <b>{info['lig'].upper()}</b> {league_emoji}")
-            message_parts.append("━━━━━━━━━━━━━━━━━━━━━")
-            message_parts.append(f"🏟 <b>{info['mac']}</b>")
-            message_parts.append(f"📅 {info['mac_tarihi']} | ⏰ {info['mac_saati']}\n")
-            
-            message_parts.append(f"{confidence_emoji} <b>GÜNÜN TAHMİNLERİ</b> {confidence_emoji}")
-            message_parts.append("━━━━━━━━━━━━━━━━━━━━━")
-            
-            # Add predictions
-            predictions = []
-            if tahminler.get('ms_tahmini'):
-                predictions.append(f"📊 Maç Sonucu: {tahminler['ms_tahmini']}")
-            if tahminler.get('ust_tahmini'):
-                predictions.append(f"📈 Gol Tahmini: {tahminler['ust_tahmini']}")
-            if tahminler.get('kg_tahmini'):
-                predictions.append(f"🥅 Karşılıklı Gol: {tahminler['kg_tahmini']}")
-            if tahminler.get('iy_gol_tahmini'):
-                predictions.append(f"⏱ İlk Yarı: {tahminler['iy_gol_tahmini']}")
-            if tahminler.get('korner_tahmini'):
-                predictions.append(f"🚩 Korner: {tahminler['korner_tahmini']}")
-            
-            if not predictions:
-                logger.warning(f"No valid predictions for match {info['mac']}")
-                return None
-                
-            message_parts.append("\n".join(predictions))
-            message_parts.append("")
-            
-            # Add optional info
-            if info.get('stadium'):
-                message_parts.append(f"🏟 Stadyum: {info['stadium']}")
-            if info.get('weather'):
-                message_parts.append(f"🌤 Hava Durumu: {info['weather']}")
-            
-            message_parts.append("━━━━━━━━━━━━━━━━━━━━━")
-            message_parts.append(f"#Tahmin #{info['lig'].replace(' ', '')}")
-            
-            return "\n".join(message_parts)
-            
+            async with self.bot:
+                await self.bot.send_message(
+                    chat_id=TELEGRAM_CHANNEL_ID,
+                    text=message,
+                    parse_mode='HTML'
+                )
+                await asyncio.sleep(1)  # Rate limiting
         except Exception as e:
-            logger.error(f"Error formatting message: {str(e)}")
+            logger.error(f"Telegram error: {e}")
+
+    def fetch_daily_matches(self) -> list:
+        """Fetch today's matches"""
+        try:
+            today = datetime.now(pytz.timezone('Europe/Istanbul')).strftime("%Y-%m-%d")
+            response = self.session.post(
+                f"{API_URL}/fetch-matches",
+                json={"date": today},
+                timeout=30
+            )
+            data = response.json()
+            if data.get('status') == 'success':
+                return data.get('data', [])
+            return []
+        except Exception as e:
+            logger.error(f"Error fetching matches: {e}")
+            return []
+
+    def analyze_match(self, match_id: int) -> dict:
+        """Analyze a single match"""
+        try:
+            response = self.session.post(
+                f"{API_URL}/analyze-match",
+                json={"match_id": match_id},
+                timeout=20
+            )
+            data = response.json()
+            if data.get('status') == 'success':
+                return data
+            return None
+        except Exception as e:
+            logger.error(f"Error analyzing match {match_id}: {e}")
             return None
 
-class TelegramBot:
-    """Main bot class"""
-    def __init__(self):
+    def format_prediction_message(self, match: tuple, analysis: dict) -> str:
+        """Format prediction message"""
         try:
-            self.config = BotConfig()
-            self.analyzer = MatchAnalyzer(self.config)
-            self.formatter = MessageFormatter(self.config)
-            self.bot = Bot(token=self.config.token)
-            self.retry_count = 3
-            self.retry_delay = 5
-            self.is_running = False
+            info = analysis['data']['info']
+            tahminler = analysis['data']['tahminler']
+            
+            # Herhangi bir tahmin var mı kontrol et
+            has_predictions = any([
+                tahminler.get('ms_tahmini'),
+                tahminler.get('ust_tahmini'),
+                tahminler.get('kg_tahmini'),
+                tahminler.get('iy_gol_tahmini'),
+                tahminler.get('korner_tahmini'),
+                tahminler.get('riskli_tahmin')
+            ])
+            
+            if not has_predictions:
+                return None
+            
+            league_emoji = self.get_league_emoji(info['lig'])
+            message = [
+                f"{league_emoji} <b>{info['mac']}</b>",
+                f"📅 {info['mac_tarihi']} | ⏰ {info['mac_saati']}\n"
+            ]
+            
+            # Tüm tahminleri ekle
+            if tahminler.get('ms_tahmini'): message.append(f"📊 Maç Sonucu: {tahminler['ms_tahmini']}")
+            if tahminler.get('ust_tahmini'): message.append(f"📈 Gol Tahmini: {tahminler['ust_tahmini']}")
+            if tahminler.get('kg_tahmini'): message.append(f"🥅 KG: {tahminler['kg_tahmini']}")
+            if tahminler.get('iy_gol_tahmini'): message.append(f"⏱ İY: {tahminler['iy_gol_tahmini']}")
+            if tahminler.get('korner_tahmini'): message.append(f"🚩 Korner: {tahminler['korner_tahmini']}")
+            if tahminler.get('riskli_tahmin'): message.append(f"⚠️ Riskli Tahmin: {tahminler['riskli_tahmin']}")
+            
+            return "\n".join(message)
+            
         except Exception as e:
-            logger.critical(f"Failed to initialize bot: {str(e)}")
-            raise
+            logger.error(f"Error formatting message: {e}")
+            return None
 
-    async def send_message(self, message: str) -> bool:
-        """Send message to Telegram channel"""
-        for attempt in range(self.retry_count):
-            try:
-                async with self.bot:
-                    await self.bot.send_message(
-                        chat_id=self.config.channel_id,
-                        text=message,
-                        parse_mode='HTML'
-                    )
-                return True
-            except RetryAfter as e:
-                retry_after = e.retry_after
-                logger.warning(f"Rate limited, waiting {retry_after} seconds")
-                await asyncio.sleep(retry_after)
-            except TelegramError as e:
-                if attempt == self.retry_count - 1:
-                    logger.error(f"Failed to send message after {self.retry_count} attempts: {str(e)}")
-                    return False
-                logger.warning(f"Telegram error (attempt {attempt + 1}/{self.retry_count}): {str(e)}")
-                await asyncio.sleep(self.retry_delay)
-        return False
-
-    async def send_header_message(self, date_str: str) -> bool:
-        """Send header message for daily predictions"""
-        message = [
-            "🎯 <b>GÜNÜN MAÇ TAHMİNLERİ</b> 🎯",
-            f"📅 {date_str}",
-            "━━━━━━━━━━━━━━━━━━━━━\n",
-            "⚡️ Sadece güvenilir tahminler paylaşılmaktadır",
-            "🎯 Riskli tahminler filtrelenmiştir",
-            "📊 Veriler yapay zeka ile analiz edilmiştir\n",
-            "━━━━━━━━━━━━━━━━━━━━━"
-        ]
-        return await self.send_message("\n".join(message))
-
-    async def process_matches(self) -> None:
-        """Process matches and send to Telegram"""
+    async def process_matches(self):
+        """Main process to fetch, analyze and send predictions"""
         try:
-            # Get today's date instead of tomorrow
-            istanbul_tz = pytz.timezone('Europe/Istanbul')
-            today = datetime.now(istanbul_tz)
-            date_str = today.strftime("%d.%m.%Y")
-            api_date = today.strftime("%Y-%m-%d")
-            
-            # Send header
-            if not await self.send_header_message(date_str):
-                logger.error("Failed to send header message")
+            # Header mesajı
+            await self.send_telegram_message(
+                "📢 <b>TAHMİN BİLDİRİMİ</b> 📢\n"
+                "━━━━━━━━━━━━━━━━━━━━━\n"
+                "🔍 Günün maç tahminleri analiz ediliyor...\n"
+                "⏳ Tahminler birazdan paylaşılacak\n"
+                "📊 Tüm ligler ve maçlar kontrol ediliyor\n"
+                "━━━━━━━━━━━━━━━━━━━━━"
+            )
+
+            # Günün maçlarını çek
+            matches = self.fetch_daily_matches()
+            if not matches:
+                await self.send_telegram_message("⚠️ Bugün için maç bulunamadı.")
                 return
-                
-            # Fetch and process matches
-            try:
-                matches = await self.analyzer.fetch_matches(api_date)
-            except APIError as e:
-                logger.error(f"Failed to fetch matches: {str(e)}")
-                await self.send_message("⚠️ Maç verileri alınırken bir hata oluştu. Lütfen daha sonra tekrar deneyin.")
-                return
-                
-            analyzed_count = 0
-            error_count = 0
-            
+
+            # Liglere göre filtrele
+            filtered_matches = []
             for match in matches:
-                try:
-                    if not isinstance(match, (list, tuple)) or len(match) < 5:
-                        logger.error(f"Invalid match data format: {match}")
-                        continue
-                        
-                    match_id, team1, team2, league, _ = match
-                    
-                    # Check if league is in filtered leagues
-                    if not any(filtered_league.lower() in league.lower() for filtered_league in self.config.filtered_leagues):
-                        continue
-                        
-                    # Analyze match
-                    analysis = await self.analyzer.analyze_match(match_id)
-                    if not analysis:
-                        error_count += 1
-                        continue
-                        
-                    # Format and send message
-                    message = self.formatter.format_analysis_message(match, analysis)
-                    if message and await self.send_message(message):
-                        analyzed_count += 1
-                        await asyncio.sleep(1)  # Rate limiting
-                    
-                except Exception as e:
-                    logger.error(f"Error processing match {match_id if 'match_id' in locals() else 'Unknown'}: {str(e)}")
-                    error_count += 1
-                    
-            # Send summary
-            if analyzed_count > 0:
-                footer = [
-                    "\n🏆 <b>GÜNÜN TAHMİNLERİ TAMAMLANDI</b> 🏆",
-                    f"📊 Toplam {analyzed_count} güvenilir tahmin paylaşıldı",
+                if match and len(match) >= 5:
+                    _, _, _, league, _ = match
+                    if any(filtered_league.lower() in league.lower() for filtered_league in LEAGUES):
+                        filtered_matches.append(match)
+
+            if not filtered_matches:
+                await self.send_telegram_message("⚠️ Takip edilen liglerde maç bulunamadı.")
+                return
+
+            # Maçları analiz et ve tahminleri gönder
+            prediction_count = 0
+            for match in filtered_matches:
+                match_id = match[0]
+                analysis = self.analyze_match(match_id)
+                
+                if analysis:
+                    message = self.format_prediction_message(match, analysis)
+                    if message:
+                        await self.send_telegram_message(message)
+                        prediction_count += 1
+
+            # Özet mesajı
+            if prediction_count > 0:
+                await self.send_telegram_message(
+                    f"\n✅ Toplam {prediction_count} maç için tahmin paylaşıldı\n"
                     "━━━━━━━━━━━━━━━━━━━━━"
-                ]
-                await self.send_message("\n".join(footer))
+                )
             else:
-                await self.send_message("⚠️ Bugün için güvenilir tahmin bulunamadı.")
-                
-            if error_count > 0:
-                logger.warning(f"Completed with {error_count} errors")
-                
-        except Exception as e:
-            logger.error(f"Critical error in process_matches: {str(e)}")
-            await self.send_message("⚠️ Sistem hatası oluştu. Yöneticiye bildirildi.")
+                await self.send_telegram_message(
+                    "⚠️ Tahmin bulunamadı.\n"
+                    "• Uygun maç bulunamadı\n"
+                    "━━━━━━━━━━━━━━━━━━━━━"
+                )
 
-    async def run_daily_job(self):
-        """Run the daily job"""
-        try:
-            await self.process_matches()
-            logger.info("Daily job completed successfully")
         except Exception as e:
-            logger.error(f"Error in daily job: {str(e)}")
+            logger.error(f"Error in process_matches: {e}")
+            await self.send_telegram_message("⚠️ Sistem hatası oluştu.")
 
-    async def start(self):
-        """Start the bot"""
-        self.is_running = True
-        
-        # Run immediately when started
-        logger.info("Running initial job...")
-        await self.run_daily_job()
-        
-        # Schedule next run at 11:00
+    async def run_daily(self):
+        """Run daily at 11:00 Turkish time"""
         while self.is_running:
             try:
+                # Türkiye saati ile şu anki zaman
                 now = datetime.now(pytz.timezone('Europe/Istanbul'))
+                
+                # Bir sonraki çalışma zamanını hesapla (saat 11:00)
                 next_run = now.replace(hour=11, minute=0, second=0, microsecond=0)
-                
                 if now >= next_run:
-                    next_run = next_run + timedelta(days=1)
+                    next_run += timedelta(days=1)
                 
-                # Calculate seconds until next run
-                delay = (next_run - now).total_seconds()
-                
+                # Bir sonraki çalışmaya kadar bekle
+                wait_seconds = (next_run - now).total_seconds()
                 logger.info(f"Next run scheduled at {next_run.strftime('%Y-%m-%d %H:%M:%S')}")
-                await asyncio.sleep(delay)
+                
+                await asyncio.sleep(wait_seconds)
                 
                 if self.is_running:
-                    await self.run_daily_job()
+                    await self.process_matches()
                 
             except Exception as e:
-                logger.error(f"Scheduler error: {str(e)}")
-                await asyncio.sleep(300)  # Wait 5 minutes on error
-    
+                logger.error(f"Error in daily schedule: {e}")
+                await asyncio.sleep(300)  # Hata durumunda 5 dakika bekle
+
     def stop(self):
         """Stop the bot"""
         self.is_running = False
-        logger.info("Bot stopped.")
+        logger.info("Bot stopped")
 
-async def run_bot():
+async def main():
     """Run the bot"""
     try:
-        # Set timezone to Turkey
-        os.environ['TZ'] = 'Europe/Istanbul'
-        time.tzset()
+        bot = SoccerBot()
         
-        # Initialize and start the bot
-        bot = TelegramBot()
+        # İlk çalıştırmada hemen başlat
+        await bot.process_matches()
         
-        logger.info("Starting bot...")
-        await bot.start()
+        # Günlük zamanlamayı başlat
+        await bot.run_daily()
         
+    except Exception as e:
+        logger.error(f"Bot error: {e}")
     except KeyboardInterrupt:
         logger.info("Bot stopped by user")
         bot.stop()
-    except Exception as e:
-        logger.critical(f"Fatal error: {str(e)}")
-        sys.exit(1)
 
-if __name__ == '__main__':
-    asyncio.run(run_bot()) 
+if __name__ == "__main__":
+    asyncio.run(main()) 
