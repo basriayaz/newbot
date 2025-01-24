@@ -5,7 +5,8 @@ import requests
 from datetime import datetime, timedelta
 import pytz
 from dotenv import load_dotenv
-import telegram
+from telegram import Bot
+from telegram.error import RetryAfter, TelegramError
 import asyncio
 import random
 import sys
@@ -245,80 +246,37 @@ class TelegramBot:
             self.config = BotConfig()
             self.analyzer = MatchAnalyzer(self.config)
             self.formatter = MessageFormatter(self.config)
-            self.bot = telegram.Bot(token=self.config.token)
+            self.bot = Bot(token=self.config.token)
             self.retry_count = 3
             self.retry_delay = 5
             self.is_running = False
         except Exception as e:
             logger.critical(f"Failed to initialize bot: {str(e)}")
             raise
-    
-    def start(self):
-        """Start the bot scheduler"""
-        self.is_running = True
-        
-        # Run immediately when started
-        logger.info("Running initial job...")
-        self.run_daily_job()
-        
-        # Schedule the job to run at 11:00 Turkish time
-        schedule.every().day.at("11:00").do(self.run_daily_job)
-        
-        logger.info("Bot scheduler started. Will run daily at 11:00 Turkish time.")
-        
-        # Run the scheduler
-        while self.is_running:
-            try:
-                schedule.run_pending()
-                time.sleep(60)  # Check every minute
-            except Exception as e:
-                logger.error(f"Scheduler error: {str(e)}")
-                time.sleep(300)  # On error, wait 5 minutes before retrying
-    
-    def stop(self):
-        """Stop the bot scheduler"""
-        self.is_running = False
-        logger.info("Bot scheduler stopped.")
-    
-    def run_daily_job(self):
-        """Run the daily job"""
-        try:
-            # Create new event loop for async operations
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            
-            # Run the process_matches function
-            loop.run_until_complete(self.process_matches())
-            
-            # Close the loop
-            loop.close()
-            
-            logger.info("Daily job completed successfully")
-        except Exception as e:
-            logger.error(f"Error in daily job: {str(e)}")
-    
+
     async def send_message(self, message: str) -> bool:
-        """Send message to Telegram channel with retries"""
+        """Send message to Telegram channel"""
         for attempt in range(self.retry_count):
             try:
-                await self.bot.send_message(
-                    chat_id=self.config.channel_id,
-                    text=message,
-                    parse_mode='HTML'
-                )
+                async with self.bot:
+                    await self.bot.send_message(
+                        chat_id=self.config.channel_id,
+                        text=message,
+                        parse_mode='HTML'
+                    )
                 return True
-            except telegram.error.RetryAfter as e:
+            except RetryAfter as e:
                 retry_after = e.retry_after
                 logger.warning(f"Rate limited, waiting {retry_after} seconds")
                 await asyncio.sleep(retry_after)
-            except telegram.error.TelegramError as e:
+            except TelegramError as e:
                 if attempt == self.retry_count - 1:
                     logger.error(f"Failed to send message after {self.retry_count} attempts: {str(e)}")
                     return False
                 logger.warning(f"Telegram error (attempt {attempt + 1}/{self.retry_count}): {str(e)}")
                 await asyncio.sleep(self.retry_delay)
         return False
-        
+
     async def send_header_message(self, date_str: str) -> bool:
         """Send header message for daily predictions"""
         message = [
@@ -331,9 +289,9 @@ class TelegramBot:
             "━━━━━━━━━━━━━━━━━━━━━"
         ]
         return await self.send_message("\n".join(message))
-        
+
     async def process_matches(self) -> None:
-        """Main function to process matches with error handling"""
+        """Process matches and send to Telegram"""
         try:
             # Get tomorrow's date
             istanbul_tz = pytz.timezone('Europe/Istanbul')
@@ -402,9 +360,52 @@ class TelegramBot:
         except Exception as e:
             logger.error(f"Critical error in process_matches: {str(e)}")
             await self.send_message("⚠️ Sistem hatası oluştu. Yöneticiye bildirildi.")
-            
-def run_bot():
-    """Run the bot with scheduler"""
+
+    async def run_daily_job(self):
+        """Run the daily job"""
+        try:
+            await self.process_matches()
+            logger.info("Daily job completed successfully")
+        except Exception as e:
+            logger.error(f"Error in daily job: {str(e)}")
+
+    async def start(self):
+        """Start the bot"""
+        self.is_running = True
+        
+        # Run immediately when started
+        logger.info("Running initial job...")
+        await self.run_daily_job()
+        
+        # Schedule next run at 11:00
+        while self.is_running:
+            try:
+                now = datetime.now(pytz.timezone('Europe/Istanbul'))
+                next_run = now.replace(hour=11, minute=0, second=0, microsecond=0)
+                
+                if now >= next_run:
+                    next_run = next_run + timedelta(days=1)
+                
+                # Calculate seconds until next run
+                delay = (next_run - now).total_seconds()
+                
+                logger.info(f"Next run scheduled at {next_run.strftime('%Y-%m-%d %H:%M:%S')}")
+                await asyncio.sleep(delay)
+                
+                if self.is_running:
+                    await self.run_daily_job()
+                
+            except Exception as e:
+                logger.error(f"Scheduler error: {str(e)}")
+                await asyncio.sleep(300)  # Wait 5 minutes on error
+    
+    def stop(self):
+        """Stop the bot"""
+        self.is_running = False
+        logger.info("Bot stopped.")
+
+async def run_bot():
+    """Run the bot"""
     try:
         # Set timezone to Turkey
         os.environ['TZ'] = 'Europe/Istanbul'
@@ -413,8 +414,8 @@ def run_bot():
         # Initialize and start the bot
         bot = TelegramBot()
         
-        logger.info("Starting bot scheduler...")
-        bot.start()
+        logger.info("Starting bot...")
+        await bot.start()
         
     except KeyboardInterrupt:
         logger.info("Bot stopped by user")
@@ -424,4 +425,4 @@ def run_bot():
         sys.exit(1)
 
 if __name__ == '__main__':
-    run_bot() 
+    asyncio.run(run_bot()) 
