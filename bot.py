@@ -293,11 +293,11 @@ class TelegramBot:
     async def process_matches(self) -> None:
         """Process matches and send to Telegram"""
         try:
-            # Get tomorrow's date
+            # Get today's date instead of tomorrow
             istanbul_tz = pytz.timezone('Europe/Istanbul')
-            tomorrow = datetime.now(istanbul_tz) + timedelta(days=1)
-            date_str = tomorrow.strftime("%d.%m.%Y")
-            api_date = tomorrow.strftime("%Y-%m-%d")
+            today = datetime.now(istanbul_tz)
+            date_str = today.strftime("%d.%m.%Y")
+            api_date = today.strftime("%Y-%m-%d")
             
             # Send header
             if not await self.send_header_message(date_str):
