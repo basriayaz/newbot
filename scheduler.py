@@ -5,9 +5,10 @@ import pytz
 from bot import process_matches
 from telegram_bot import send_message, cleanup, send_photo
 from message_handler import (
-    get_major_league_predictions, get_ht_goal_predictions,
+    get_major_league_predictions, get_ht_goals_predictions,
     format_prediction_message, create_ht_goals_table_image,
-    get_random_ad, create_daily_coupon, generate_prediction_comment
+    get_random_ad, create_daily_coupon, generate_prediction_comment,
+    get_good_morning_message, get_ready_message
 )
 import logging
 import sys
@@ -205,7 +206,7 @@ def send_ht_goals_list():
     """İlk yarı gol listesini görsel olarak gönderir"""
     logging.info("İlk yarı gol listesi oluşturma işlemi başlatılıyor...")
     try:
-        predictions = get_ht_goal_predictions()
+        predictions = get_ht_goals_predictions()
         logging.info(f"Veritabanından {len(predictions) if predictions else 0} ilk yarı gol tahmini alındı")
         
         if not predictions:
@@ -278,17 +279,17 @@ def test_all_functions():
     print("🔄 Test başlatılıyor...")
     
     functions_to_test = [
-        ("Maç analizi", daily_match_analysis),
-        ("Günaydın mesajı", send_good_morning),
-        ("Maçlar hazır mesajı", send_daily_matches_ready),
-        ("İlk tahmin", send_first_prediction),
-        ("İkinci tahmin", send_second_prediction),
-        ("Reklam", send_advertisement),
-        ("Üçüncü tahmin", send_third_prediction),
-        ("Dördüncü tahmin", send_fourth_prediction),
-        ("Kupon duyurusu", send_coupon_announcement),
-        ("Günün kuponu", send_daily_coupon),
-        ("İY gol duyurusu", send_ht_goals_announcement),
+        #("Maç analizi", daily_match_analysis),
+        #("Günaydın mesajı", send_good_morning),
+        #("Maçlar hazır mesajı", send_daily_matches_ready),
+        #("İlk tahmin", send_first_prediction),
+        #("İkinci tahmin", send_second_prediction),
+        #("Reklam", send_advertisement),
+        #("Üçüncü tahmin", send_third_prediction),
+        #("Dördüncü tahmin", send_fourth_prediction),
+        #("Kupon duyurusu", send_coupon_announcement),
+        #("Günün kuponu", send_daily_coupon),
+        #("İY gol duyurusu", send_ht_goals_announcement),
         ("İY gol listesi", send_ht_goals_list),
     ]
     

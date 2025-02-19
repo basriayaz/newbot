@@ -186,44 +186,65 @@ def get_major_league_predictions() -> List[Dict[str, Any]]:
         if 'conn' in locals():
             conn.close()
 
-def get_ht_goal_predictions() -> List[Dict[str, Any]]:
-    """İlk yarı gol tahmini olan maçları alır"""
+def get_ht_goals_predictions() -> List[Dict[str, Any]]:
+    """İlk yarı gol tahminlerini alır"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Bugünün tarihini al ve formatla
         today = datetime.now().strftime("%d/%m/%Y")
         
         query = """
-        SELECT m.match_id, m.league, m.home_team, m.away_team, m.match_time,
-               p.ht_goal_prediction
+        SELECT DISTINCT m.match_id, m.league, m.home_team, m.away_team, m.match_time,
+               p.ht_goal_prediction, 
+               COALESCE(pc.over_05_ht_percent, '0%') as over_05_ht_percent,
+               COALESCE(pc.over_15_ht_percent, '0%') as over_15_ht_percent
         FROM matches m
-        JOIN predictions p ON m.match_id = p.match_id
-        WHERE p.ht_goal_prediction IS NOT NULL
+        LEFT JOIN predictions p ON m.match_id = p.match_id
+        LEFT JOIN percentages pc ON m.match_id = pc.match_id
+        WHERE m.match_date = ?
+        AND p.ht_goal_prediction IS NOT NULL
         AND LENGTH(TRIM(p.ht_goal_prediction)) > 0
-        AND m.match_date = ?
         ORDER BY m.match_time ASC
         """
         
         cursor.execute(query, (today,))
         predictions = cursor.fetchall()
         
+        # Benzersiz maçları tutmak için set kullanıyoruz
+        seen_match_ids = set()
         result = []
+        
         for pred in predictions:
-            result.append({
-                'match_id': pred[0],
-                'league': pred[1],
-                'home_team': pred[2],
-                'away_team': pred[3],
-                'match_time': pred[4],
-                'ht_goal_prediction': pred[5]
-            })
+            try:
+                match_id = pred[0]
+                
+                # Eğer bu maç daha önce eklenmediyse
+                if match_id not in seen_match_ids:
+                    # Yüzde işaretini kaldır ve integer'a çevir
+                    over_05_percent = pred[6].replace('%', '') if pred[6] else '0'
+                    over_15_percent = pred[7].replace('%', '') if pred[7] else '0'
+                    
+                    prediction = {
+                        'match_id': match_id,
+                        'league': pred[1],
+                        'home_team': pred[2],
+                        'away_team': pred[3],
+                        'match_time': pred[4],
+                        'ht_goal_prediction': pred[5],
+                        'over_05_ht_percent': int(over_05_percent),
+                        'over_15_ht_percent': int(over_15_percent)
+                    }
+                    result.append(prediction)
+                    seen_match_ids.add(match_id)
+            except Exception as e:
+                logging.error(f"Tahmin verisi işlenirken hata: {str(e)}")
+                continue
         
         return result
         
     except Exception as e:
-        logging.error(f"İlk yarı gol tahminleri alınırken hata: {str(e)}")
+        logging.error(f"İY gol tahminleri alınırken hata: {str(e)}")
         return []
     finally:
         if 'conn' in locals():
@@ -235,10 +256,10 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
     # Font boyutları
     title_font_size = 48
     header_font_size = 36
-    content_font_size = 28  # Font boyutunu biraz daha küçülttük
+    content_font_size = 28
     
     # Renk tanımları
-    background_color = (240, 242, 245)  # Daha modern bir arka plan rengi
+    background_color = (240, 242, 245)  # Arka plan rengi
     header_bg_color = (52, 152, 219)    # Mavi başlık
     text_color = (44, 62, 80)           # Koyu mavi-gri metin
     header_text_color = (255, 255, 255)  # Beyaz başlık metni
@@ -246,20 +267,22 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
     alt_row_color = (236, 240, 241)     # Alternatif satır rengi
     
     # Sütun genişlikleri
-    league_width = 350     # Lig sütunu genişliği
-    match_width = 650     # Maç sütunu genişliği
-    prediction_width = 200 # Tahmin sütunu genişliği
+    time_width = 120      # Saat sütunu genişliği
+    league_width = 300    # Lig sütunu genişliği
+    match_width = 600     # Maç sütunu genişliği
+    prediction_width = 180 # Tahmin sütunu genişliği
+    percent_width = 180   # Yüzde sütunları genişliği
     
     # Satır yüksekliği ve kenar boşlukları
-    row_height = 55       # Satır yüksekliğini biraz daha azalttık
+    row_height = 55
     header_height = 80
     title_height = 100
     margin = 40
     padding = 20
     
     # Maksimum karakter uzunlukları
-    max_league_chars = 20  # Lig için maksimum 20 karakter
-    max_match_chars = 50   # Maç için maksimum 50 karakter
+    max_league_chars = 20
+    max_match_chars = 40
     
     def truncate_text(text: str, max_chars: int) -> str:
         """Metni belirli bir uzunlukta kısaltır"""
@@ -285,7 +308,7 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
     
     for group_index, group in enumerate(prediction_groups, 1):
         # Görsel boyutları
-        total_width = league_width + match_width + prediction_width + (margin * 2)
+        total_width = time_width + league_width + match_width + prediction_width + (percent_width * 2) + (margin * 2)
         total_height = (title_height + header_height + 
                        (row_height * len(group)) + (margin * 2))
         
@@ -328,8 +351,8 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
         
         # Başlık metinleri
         x_pos = margin
-        headers = ["Lig", "Maç", "Tahmin"]
-        widths = [league_width, match_width, prediction_width]
+        headers = ["Saat", "Lig", "Maç", "Tahmin", "İY 0.5 Üst", "İY 1.5 Üst"]
+        widths = [time_width, league_width, match_width, prediction_width, percent_width, percent_width]
         
         for header, width in zip(headers, widths):
             text_x = get_centered_text_position(header, header_font, width, x_pos)
@@ -352,9 +375,28 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
                     fill=alt_row_color
                 )
             
+            # Yatay çizgi (her satırın altına)
+            draw.line(
+                [(margin, y_pos + row_height),
+                 (total_width - margin, y_pos + row_height)],
+                fill=border_color,
+                width=1
+            )
+            
             x_pos = margin
             
+            # Saat
+            time_text = pred['match_time']
+            text_x = get_centered_text_position(time_text, content_font, time_width, x_pos)
+            draw.text(
+                (text_x, y_pos + (row_height - content_font_size) // 2),
+                time_text,
+                font=content_font,
+                fill=text_color
+            )
+            
             # Lig
+            x_pos += time_width
             league = truncate_text(pred['league'], max_league_chars)
             league_x = x_pos + padding
             draw.text(
@@ -386,6 +428,28 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
                 fill=text_color
             )
             
+            # İY 0.5 Üst Yüzdesi
+            x_pos += prediction_width
+            over_05_text = f"%{pred['over_05_ht_percent']}"
+            text_x = get_centered_text_position(over_05_text, content_font, percent_width, x_pos)
+            draw.text(
+                (text_x, y_pos + (row_height - content_font_size) // 2),
+                over_05_text,
+                font=content_font,
+                fill=text_color
+            )
+            
+            # İY 1.5 Üst Yüzdesi
+            x_pos += percent_width
+            over_15_text = f"%{pred['over_15_ht_percent']}"
+            text_x = get_centered_text_position(over_15_text, content_font, percent_width, x_pos)
+            draw.text(
+                (text_x, y_pos + (row_height - content_font_size) // 2),
+                over_15_text,
+                font=content_font,
+                fill=text_color
+            )
+            
             y_pos += row_height
         
         # Dış kenarlık
@@ -397,19 +461,22 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
         )
         
         # Dikey çizgiler
-        x_pos = margin + league_width
-        draw.line(
-            [(x_pos, margin + title_height),
-             (x_pos, total_height - margin)],
-            fill=border_color,
-            width=2
-        )
+        x_pos = margin
+        for width in widths[:-1]:  # Son sütun hariç her sütun arasına çizgi
+            x_pos += width
+            draw.line(
+                [(x_pos, margin + title_height),
+                 (x_pos, total_height - margin)],
+                fill=border_color,
+                width=2
+            )
         
-        x_pos += match_width
+        # Başlık altı çizgisi (kalın)
+        y_pos = margin + title_height + header_height
         draw.line(
-            [(x_pos, margin + title_height),
-             (x_pos, total_height - margin)],
-            fill=border_color,
+            [(margin, y_pos),
+             (total_width - margin, y_pos)],
+            fill=header_bg_color,
             width=2
         )
         
@@ -449,7 +516,8 @@ def format_prediction_message(prediction: Dict[str, Any]) -> str:
         # Bugünün tarihini al ve formatla
         today = datetime.now().strftime("%d/%m/%Y")
             
-        message = f"🏆 {prediction['home_team']} - {prediction['away_team']}\n"
+        message = f"🏆 {prediction['league']}\n"
+        message += f"⚽ {prediction['home_team']} - {prediction['away_team']}\n"
         message += f"📅 {today} | ⏰ {prediction['match_time']}\n\n"
         
         # Tahminleri kontrol et ve ekle
@@ -478,6 +546,9 @@ def format_prediction_message(prediction: Dict[str, Any]) -> str:
             logging.error(f"İY: {prediction.get('ht_goal_prediction')}")
             logging.error(f"Riskli: {prediction.get('risky_prediction')}")
             raise ValueError(f"Geçerli tahmin bulunamadı (Maç ID: {prediction.get('match_id', '?')})")
+        
+        # Site linkini ekle
+        message += "\n🌐 tipstergpt.com"
         
         return message
         
@@ -613,50 +684,4 @@ def get_good_morning_message() -> str:
 
 def get_ready_message(message_type: str) -> str:
     """Hazırlık mesajını döndürür"""
-    return READY_MESSAGES.get(message_type, "")
-
-def get_ht_goals_predictions() -> List[Dict[str, Any]]:
-    """İlk yarı gol tahminlerini alır"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        today = datetime.now().strftime("%d/%m/%Y")
-        placeholders = ','.join(['?' for _ in MAJOR_LEAGUES])
-        
-        query = f"""
-        SELECT m.match_id, m.league, m.home_team, m.away_team, m.match_time,
-               p.ht_goal_prediction
-        FROM matches m
-        LEFT JOIN predictions p ON m.match_id = p.match_id
-        WHERE m.league IN ({placeholders})
-        AND m.match_date = ?
-        AND p.ht_goal_prediction IS NOT NULL
-        AND LENGTH(TRIM(p.ht_goal_prediction)) > 0
-        ORDER BY m.match_time ASC
-        """
-        
-        query_params = MAJOR_LEAGUES + [today]
-        cursor.execute(query, query_params)
-        predictions = cursor.fetchall()
-        
-        result = []
-        for pred in predictions:
-            prediction = {
-                'match_id': pred[0],
-                'league': pred[1],
-                'home_team': pred[2],
-                'away_team': pred[3],
-                'match_time': pred[4],
-                'ht_goal_prediction': pred[5]
-            }
-            result.append(prediction)
-        
-        return result
-        
-    except Exception as e:
-        logging.error(f"İY gol tahminleri alınırken hata: {str(e)}")
-        return []
-    finally:
-        if 'conn' in locals():
-            conn.close() 
+    return READY_MESSAGES.get(message_type, "") 
