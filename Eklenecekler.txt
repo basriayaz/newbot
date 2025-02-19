@@ -1,0 +1,22 @@
+Her gün saat 7 de günün listesi indirilip tüm maçlar analiz edilecek ve veritabanına kaydedilecek
+Her gün saat 10:50'de telegramda günaydın paylaşımları yapılacak.(Haftanın her günün için farklı günaydın yazısı olacak)
+Her gün saat 11:30'da telegramda günün maçları hazır, bekleyenler burda mı gönderisi paylaşılacak
+Her gün saat 12 de günün ilk tahmini veritabanından alınıp paylaşılacak(Sadece major liglerin tahminleri paylaşılacak)
+3 dk sonra günün ikinci tahmini paylaşılacak, altına yorum yazılacak(Yorum yapay zekaya yaptırılacak)
+Saat 13 de reklam gönderisi paylaşılacak (Reklam gönderilerini ben hazırlayacağım 4 ayrı reklam paylaşımı olacak.Görsel de içeren)
+Saat 13:30 da günün üçüncü tahmini paylaşılacak, altına yorum yazılacak(Tahminler major liglerden seçilecek)
+3 dk sonra günün dördüncü tahmini paylaşılacak, altına yorum yazılacak
+Saat 13.50 de Günün kuponu hazır, bekleyenleri görelim gönderisi paylaşılacak
+Saat 14.20 de günün kuponu paylaşılacak (Major liglerden seçilen maçların tahminlerinden kupon oluşturulacak 3 maçlık)
+15:00 da günün ilk yarı gol listesi hazır, bekleyenleri görelim gönderisi paylaşılacak
+15.30 da günün ilk yarı gol listesi paylaşılacak
+
+Günün listeleri nasıl oluşacak?:
+Günün maçlarının listesi apiden çekilir
+idlere göre tüm maçlar analiz edilir ve tüm analizler bir veritabanına kaydedilir(json içindeki her verinin ayrı yeri olacak)
+Bu listeden tahminler kısmı dolu olanlar bir liste haline getirilecek. Telegramda liste görsel olarak paylaşılacak.
+iy gol tahminleri dolu olan maçlar 
+MS tahminleri dolu olan maçlar
+kg var tahminleri dolu olan maçlar vb şekilde ayrı listeler olacak
+
+

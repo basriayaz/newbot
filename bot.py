@@ -1,261 +1,207 @@
-import os
-import json
-import logging
 import requests
-from datetime import datetime, timedelta
-import pytz
-from dotenv import load_dotenv
-from telegram import Bot
+import json
+from datetime import datetime
+import time
+import logging
 import asyncio
-import sys
+import aiohttp
+from database import create_connection, create_tables, insert_match_info
+from typing import List, Dict, Any
+from asyncio import Semaphore
 
 # Logging ayarları
 logging.basicConfig(
-    format='%(asctime)s - %(levelname)s - %(message)s',
     level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler('bot.log'),
-        logging.StreamHandler(sys.stdout)
+        logging.StreamHandler()
     ]
 )
-logger = logging.getLogger(__name__)
 
-# Çevre değişkenlerini yükle
-load_dotenv()
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-TELEGRAM_CHANNEL_ID = os.getenv('TELEGRAM_CHANNEL_ID')
-API_URL = "https://soccer-api-yeni-503570030595.us-central1.run.app"
+# API endpoint'leri
+FETCH_MATCHES_URL = "https://soccer-api-yeni-503570030595.us-central1.run.app/fetch-matches"
+ANALYZE_MATCH_URL = "https://soccer-api-yeni-503570030595.us-central1.run.app/analyze-match"
 
-# Takip edilecek ligler
-LEAGUES = [
-    "Spanish La Liga",
-    "English Premier League", 
-    "German Bundesliga",
-    "France Ligue 1",
-    "Italian Serie A",
-    "Turkey Super Lig",
-    "Uefa Champions League",
-    "Uefa Europa League",
-    "Uefa Conference League"
-]
+# Eş zamanlı işlem limiti
+MAX_CONCURRENT_TASKS = 5
 
-# Lig emojileri
-LEAGUE_EMOJIS = {
-    "spanish la liga": "🇪🇸",
-    "english premier league": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
-    "german bundesliga": "🇩🇪",
-    "france ligue 1": "🇫🇷",
-    "italian serie a": "🇮🇹",
-    "turkey super lig": "🇹🇷",
-    "uefa champions league": "🏆",
-    "uefa europa league": "🌟",
-    "uefa conference league": "⭐"
-}
-
-class SoccerBot:
-    def __init__(self):
-        self.bot = Bot(token=TELEGRAM_TOKEN)
-        self.session = requests.Session()
-        self.is_running = True
-        
-    def get_league_emoji(self, league_name: str) -> str:
-        """Get emoji for league"""
-        for key, emoji in LEAGUE_EMOJIS.items():
-            if key.lower() in league_name.lower():
-                return emoji
-        return "⚽️"
-
-    async def send_telegram_message(self, message: str) -> None:
-        """Send message to Telegram channel"""
+def fetch_daily_matches(date_str: str) -> list:
+    """Günün maç listesini API'den alır"""
+    max_retries = 3
+    retry_delay = 2  # saniye
+    
+    for attempt in range(max_retries):
         try:
-            async with self.bot:
-                await self.bot.send_message(
-                    chat_id=TELEGRAM_CHANNEL_ID,
-                    text=message,
-                    parse_mode='HTML'
-                )
-                await asyncio.sleep(1)  # Rate limiting
-        except Exception as e:
-            logger.error(f"Telegram error: {e}")
-
-    def fetch_daily_matches(self) -> list:
-        """Fetch today's matches"""
-        try:
-            today = datetime.now(pytz.timezone('Europe/Istanbul')).strftime("%Y-%m-%d")
-            response = self.session.post(
-                f"{API_URL}/fetch-matches",
-                json={"date": today},
-                timeout=30
-            )
+            logging.info(f"Maç listesi alınıyor... (Tarih: {date_str})")
+            response = requests.post(FETCH_MATCHES_URL, json={"date": date_str})
+            response.raise_for_status()
             data = response.json()
-            if data.get('status') == 'success':
-                return data.get('data', [])
-            return []
-        except Exception as e:
-            logger.error(f"Error fetching matches: {e}")
-            return []
-
-    def analyze_match(self, match_id: int) -> dict:
-        """Analyze a single match"""
-        try:
-            response = self.session.post(
-                f"{API_URL}/analyze-match",
-                json={"match_id": match_id},
-                timeout=20
-            )
-            data = response.json()
-            if data.get('status') == 'success':
-                return data
-            return None
-        except Exception as e:
-            logger.error(f"Error analyzing match {match_id}: {e}")
-            return None
-
-    def format_prediction_message(self, match: tuple, analysis: dict) -> str:
-        """Format prediction message"""
-        try:
-            info = analysis['data']['info']
-            tahminler = analysis['data']['tahminler']
             
-            # Herhangi bir tahmin var mı kontrol et
-            has_predictions = any([
-                tahminler.get('ms_tahmini'),
-                tahminler.get('ust_tahmini'),
-                tahminler.get('kg_tahmini'),
-                tahminler.get('iy_gol_tahmini'),
-                tahminler.get('korner_tahmini'),
-                tahminler.get('riskli_tahmin')
-            ])
+            if not data:
+                error_msg = "API boş yanıt döndürdü"
+                logging.error(error_msg)
+                if attempt < max_retries - 1:
+                    logging.info(f"Yeniden deneniyor ({attempt + 2}/{max_retries})...")
+                    time.sleep(retry_delay)
+                    continue
+                return []
             
-            if not has_predictions:
-                return None
-            
-            league_emoji = self.get_league_emoji(info['lig'])
-            message = [
-                f"{league_emoji} <b>{info['mac']}</b>",
-                f"📅 {info['mac_tarihi']} | ⏰ {info['mac_saati']}\n"
-            ]
-            
-            # Tüm tahminleri ekle
-            if tahminler.get('ms_tahmini'): message.append(f"📊 Maç Sonucu: {tahminler['ms_tahmini']}")
-            if tahminler.get('ust_tahmini'): message.append(f"📈 Gol Tahmini: {tahminler['ust_tahmini']}")
-            if tahminler.get('kg_tahmini'): message.append(f"🥅 KG: {tahminler['kg_tahmini']}")
-            if tahminler.get('iy_gol_tahmini'): message.append(f"⏱ İY: {tahminler['iy_gol_tahmini']}")
-            if tahminler.get('korner_tahmini'): message.append(f"🚩 Korner: {tahminler['korner_tahmini']}")
-            if tahminler.get('riskli_tahmin'): message.append(f"⚠️ Riskli Tahmin: {tahminler['riskli_tahmin']}")
-            
-            return "\n".join(message)
-            
-        except Exception as e:
-            logger.error(f"Error formatting message: {e}")
-            return None
-
-    async def process_matches(self):
-        """Main process to fetch, analyze and send predictions"""
-        try:
-            # Header mesajı
-            await self.send_telegram_message(
-                "📢 <b>TAHMİN BİLDİRİMİ</b> 📢\n"
-                "━━━━━━━━━━━━━━━━━━━━━\n"
-                "🔍 Günün maç tahminleri analiz ediliyor...\n"
-                "⏳ Tahminler birazdan paylaşılacak\n"
-                "📊 Tüm ligler ve maçlar kontrol ediliyor\n"
-                "━━━━━━━━━━━━━━━━━━━━━"
-            )
-
-            # Günün maçlarını çek
-            matches = self.fetch_daily_matches()
-            if not matches:
-                await self.send_telegram_message("⚠️ Bugün için maç bulunamadı.")
-                return
-
-            # Liglere göre filtrele
-            filtered_matches = []
-            for match in matches:
-                if match and len(match) >= 5:
-                    _, _, _, league, _ = match
-                    if any(filtered_league.lower() in league.lower() for filtered_league in LEAGUES):
-                        filtered_matches.append(match)
-
-            if not filtered_matches:
-                await self.send_telegram_message("⚠️ Takip edilen liglerde maç bulunamadı.")
-                return
-
-            # Maçları analiz et ve tahminleri gönder
-            prediction_count = 0
-            for match in filtered_matches:
-                match_id = match[0]
-                analysis = self.analyze_match(match_id)
-                
-                if analysis:
-                    message = self.format_prediction_message(match, analysis)
-                    if message:
-                        await self.send_telegram_message(message)
-                        prediction_count += 1
-
-            # Özet mesajı
-            if prediction_count > 0:
-                await self.send_telegram_message(
-                    f"\n✅ Toplam {prediction_count} maç için tahmin paylaşıldı\n"
-                    "━━━━━━━━━━━━━━━━━━━━━"
-                )
+            if data.get("status") == "success" and "data" in data and data["data"]:
+                matches = data["data"]
+                logging.info(f"Toplam {len(matches)} maç bulundu")
+                return matches
             else:
-                await self.send_telegram_message(
-                    "⚠️ Tahmin bulunamadı.\n"
-                    "• Uygun maç bulunamadı\n"
-                    "━━━━━━━━━━━━━━━━━━━━━"
-                )
+                error_msg = f"API yanıtı başarısız veya veri yok: {data}"
+                logging.error(error_msg)
+                if attempt < max_retries - 1:
+                    logging.info(f"Yeniden deneniyor ({attempt + 2}/{max_retries})...")
+                    time.sleep(retry_delay)
+                    continue
+                return []
+                
+        except (requests.exceptions.RequestException, json.JSONDecodeError, TypeError, KeyError) as e:
+            error_msg = f"Maç listesi alınırken hata oluştu: {type(e).__name__}: {str(e)}"
+            logging.error(error_msg)
+            
+            if attempt < max_retries - 1:
+                logging.info(f"Yeniden deneniyor ({attempt + 2}/{max_retries})...")
+                time.sleep(retry_delay)
+                continue
+            return []
+    
+    return []
 
-        except Exception as e:
-            logger.error(f"Error in process_matches: {e}")
-            await self.send_telegram_message("⚠️ Sistem hatası oluştu.")
-
-    async def run_daily(self):
-        """Run daily at 11:00 Turkish time"""
-        while self.is_running:
+async def analyze_match_async(session: aiohttp.ClientSession, match_id: int, semaphore: Semaphore) -> Dict[str, Any]:
+    """Belirli bir maçı eş zamanlı olarak analiz eder"""
+    max_retries = 3
+    retry_delay = 2
+    
+    async with semaphore:  # Eş zamanlı işlem sayısını sınırla
+        for attempt in range(max_retries):
             try:
-                # Türkiye saati ile şu anki zaman
-                now = datetime.now(pytz.timezone('Europe/Istanbul'))
-                
-                # Bir sonraki çalışma zamanını hesapla (saat 11:00)
-                next_run = now.replace(hour=11, minute=0, second=0, microsecond=0)
-                if now >= next_run:
-                    next_run += timedelta(days=1)
-                
-                # Bir sonraki çalışmaya kadar bekle
-                wait_seconds = (next_run - now).total_seconds()
-                logger.info(f"Next run scheduled at {next_run.strftime('%Y-%m-%d %H:%M:%S')}")
-                
-                await asyncio.sleep(wait_seconds)
-                
-                if self.is_running:
-                    await self.process_matches()
-                
+                logging.info(f"Maç analizi yapılıyor (ID: {match_id})")
+                async with session.post(ANALYZE_MATCH_URL, json={"match_id": match_id}) as response:
+                    response.raise_for_status()
+                    data = await response.json()
+                    
+                    if data.get("status") == "success" and "data" in data:
+                        return data["data"]
+                    else:
+                        error_msg = f"Maç analizi başarısız: {data}"
+                        logging.error(error_msg)
+                        
+                        if attempt < max_retries - 1:
+                            logging.info(f"Yeniden deneniyor ({attempt + 2}/{max_retries})...")
+                            await asyncio.sleep(retry_delay)
+                            continue
+                        return None
+                        
             except Exception as e:
-                logger.error(f"Error in daily schedule: {e}")
-                await asyncio.sleep(300)  # Hata durumunda 5 dakika bekle
+                error_msg = f"Maç analizi sırasında hata oluştu (ID: {match_id}): {type(e).__name__}: {str(e)}"
+                logging.error(error_msg)
+                
+                if attempt < max_retries - 1:
+                    logging.info(f"Yeniden deneniyor ({attempt + 2}/{max_retries})...")
+                    await asyncio.sleep(retry_delay)
+                    continue
+                return None
+    
+    return None
 
-    def stop(self):
-        """Stop the bot"""
-        self.is_running = False
-        logger.info("Bot stopped")
-
-async def main():
-    """Run the bot"""
+async def process_matches_async():
+    """Günün maçlarını eş zamanlı olarak işler"""
     try:
-        bot = SoccerBot()
+        # Veritabanı bağlantısını oluştur
+        conn = create_connection()
+        create_tables(conn)
         
-        # İlk çalıştırmada hemen başlat
-        await bot.process_matches()
+        # Bugünün tarihini al
+        today = datetime.now().strftime("%Y-%m-%d")
         
-        # Günlük zamanlamayı başlat
-        await bot.run_daily()
+        # Günün maçlarını al
+        matches = fetch_daily_matches(today)
+        
+        if not matches:
+            error_msg = f"{today} tarihi için maç bulunamadı"
+            logging.warning(error_msg)
+            return error_msg
+        
+        logging.info(f"{today} tarihi için {len(matches)} maç bulundu")
+        
+        # İstatistikler
+        successful_analyses = 0
+        failed_analyses = 0
+        skipped_analyses = 0
+        
+        # Semaphore oluştur
+        semaphore = Semaphore(MAX_CONCURRENT_TASKS)
+        
+        async with aiohttp.ClientSession() as session:
+            tasks = []
+            
+            for match in matches:
+                try:
+                    match_id = match[0]
+                except (IndexError, TypeError) as e:
+                    logging.error(f"Geçersiz maç verisi: {match}, Hata: {type(e).__name__}: {str(e)}")
+                    failed_analyses += 1
+                    continue
+                
+                # Veritabanında kontrol et
+                cursor = conn.cursor()
+                cursor.execute("SELECT match_id FROM matches WHERE match_id = ?", (match_id,))
+                existing_match = cursor.fetchone()
+                
+                if existing_match:
+                    logging.info(f"Maç zaten veritabanında mevcut (ID: {match_id}), atlanıyor...")
+                    skipped_analyses += 1
+                    continue
+                
+                # Analiz görevini ekle
+                task = asyncio.create_task(analyze_match_async(session, match_id, semaphore))
+                tasks.append((match_id, task))
+            
+            # Tüm görevleri bekle
+            for match_id, task in tasks:
+                try:
+                    match_analysis = await task
+                    if match_analysis:
+                        insert_match_info(conn, match_analysis)
+                        logging.info(f"Maç analizi başarıyla kaydedildi (ID: {match_id})")
+                        successful_analyses += 1
+                    else:
+                        logging.error(f"Maç analizi başarısız (ID: {match_id})")
+                        failed_analyses += 1
+                except Exception as e:
+                    logging.error(f"Maç işlenirken hata oluştu (ID: {match_id}): {type(e).__name__}: {str(e)}")
+                    failed_analyses += 1
+        
+        # İşlem özetini oluştur
+        summary = f"""
+        📊 Analiz Özeti ({today}):
+        ✅ Başarılı: {successful_analyses}
+        ❌ Başarısız: {failed_analyses}
+        ⏭️ Atlanan: {skipped_analyses}
+        📈 Toplam: {len(matches)}
+        """
+        logging.info(summary)
+        
+        return summary
         
     except Exception as e:
-        logger.error(f"Bot error: {e}")
-    except KeyboardInterrupt:
-        logger.info("Bot stopped by user")
-        bot.stop()
+        error_msg = f"Genel bir hata oluştu: {type(e).__name__}: {str(e)}"
+        logging.error(error_msg)
+        return error_msg
+        
+    finally:
+        if 'conn' in locals():
+            conn.close()
+            logging.info("Veritabanı bağlantısı kapatıldı")
+
+def process_matches():
+    """Senkron wrapper fonksiyonu"""
+    return asyncio.run(process_matches_async())
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    process_matches() 

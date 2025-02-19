@@ -1,0 +1,16 @@
+1- Eğer maç veritabanına daha önceden kaydedilmişse aynı maçı bir daha ekleme, var olan maçın verilerini güncelle
+
+Major ligler
+
+['Spanish La Liga', 
+'English Premier League', 
+'German Bundesliga', 
+'Italian Serie A', 
+'French Ligue 1',
+'Turkey Super Lig',
+'Uefa Champions League',
+'uefa europa league',
+'uefa Europa Conference League',
+'england Championship',
+
+]
