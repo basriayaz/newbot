@@ -7,8 +7,8 @@ from telegram_bot import send_message, cleanup, send_photo
 from message_handler import (
     get_major_league_predictions, get_ht_goals_predictions,
     format_prediction_message, create_ht_goals_table_image,
-    get_random_ad, create_daily_coupon, generate_prediction_comment,
-    get_good_morning_message, get_ready_message
+    get_next_ad, create_daily_coupon, generate_prediction_comment,
+    get_good_morning_message, get_ready_message, get_random_ad
 )
 import logging
 import sys
@@ -119,13 +119,29 @@ def send_second_prediction():
 def send_advertisement():
     """Reklam gönderisi paylaşır"""
     try:
-        ad = get_random_ad()
-        if os.path.exists(ad['image']):
+        # Make sure images directory exists
+        if not os.path.exists('images'):
+            os.makedirs('images')
+            logging.info("Created images directory")
+        
+        ad = get_next_ad()  # Use sequential ads instead of random
+        if ad['image'] and os.path.exists(ad['image']):  # Check if image exists and is not None
             send_photo(ad['image'], ad['text'])
+            logging.info(f"Advertisement sent with image: {ad['image']}")
         else:
             send_message(ad['text'])
+            if ad['image']:  # If image path was specified but file doesn't exist
+                logging.warning(f"Advertisement image not found: {ad['image']}")
+            logging.info("Advertisement sent without image")
     except Exception as e:
         logging.error(f"Reklam gönderilirken hata oluştu: {e}")
+        # Try to send just the text if image fails
+        try:
+            if 'ad' in locals() and ad['text']:
+                send_message(ad['text'])
+                logging.info("Sent advertisement text after image error")
+        except Exception as e2:
+            logging.error(f"Backup text message also failed: {e2}")
 
 def send_third_prediction():
     """Günün üçüncü tahminini gönderir"""
@@ -282,13 +298,16 @@ def test_all_functions():
         ("Maç analizi", daily_match_analysis),
         ("Günaydın mesajı", send_good_morning),
         ("Maçlar hazır mesajı", send_daily_matches_ready),
+        ("Reklam 1", send_advertisement),  # First ad after matches ready
         ("İlk tahmin", send_first_prediction),
         ("İkinci tahmin", send_second_prediction),
-        ("Reklam", send_advertisement),
+        ("Reklam 2", send_advertisement),  # Second ad after second prediction
         ("Üçüncü tahmin", send_third_prediction),
         ("Dördüncü tahmin", send_fourth_prediction),
+        ("Reklam 3", send_advertisement),  # Third ad after fourth prediction
         ("Kupon duyurusu", send_coupon_announcement),
         ("Günün kuponu", send_daily_coupon),
+        ("Reklam 4", send_advertisement),  # Fourth ad after daily coupon
         ("İY gol duyurusu", send_ht_goals_announcement),
         ("İY gol listesi", send_ht_goals_list),
     ]
@@ -310,17 +329,24 @@ def run_scheduler():
     schedule.every().day.at("07:00").do(daily_match_analysis)
     schedule.every().day.at("10:50").do(send_good_morning)
     schedule.every().day.at("11:30").do(send_daily_matches_ready)
+    schedule.every().day.at("11:45").do(send_advertisement)  # First ad after matches ready
     
-    # Yeni görevler
+    # Maç tahminleri ve reklamlar
     schedule.every().day.at("12:00").do(send_first_prediction)
     schedule.every().day.at("12:03").do(send_second_prediction)
-    schedule.every().day.at("13:00").do(send_advertisement)
-    schedule.every().day.at("13:30").do(send_third_prediction)
-    schedule.every().day.at("13:33").do(send_fourth_prediction)
-    schedule.every().day.at("13:50").do(send_coupon_announcement)
-    schedule.every().day.at("14:20").do(send_daily_coupon)
-    schedule.every().day.at("15:00").do(send_ht_goals_announcement)
-    schedule.every().day.at("15:30").do(send_ht_goals_list)
+    schedule.every().day.at("12:10").do(send_advertisement)  # Second ad after second prediction
+    schedule.every().day.at("12:30").do(send_third_prediction)
+    schedule.every().day.at("12:33").do(send_fourth_prediction)
+    schedule.every().day.at("12:40").do(send_advertisement)  # Third ad after fourth prediction
+    
+    # Kupon ve son reklam
+    schedule.every().day.at("13:00").do(send_coupon_announcement)
+    schedule.every().day.at("13:30").do(send_daily_coupon)
+    schedule.every().day.at("13:31").do(send_advertisement)  # Fourth ad after daily coupon
+    
+    # İlk yarı gol listesi
+    schedule.every().day.at("14:00").do(send_ht_goals_announcement)
+    schedule.every().day.at("14:30").do(send_ht_goals_list)
     
     while True:
         try:

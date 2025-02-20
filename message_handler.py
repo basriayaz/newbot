@@ -29,36 +29,49 @@ MAJOR_LEAGUES = [
 # Reklam şablonları
 AD_TEMPLATES = [
     {
-        "image": "images/reklam1.jpg",
-        "text": "🌟 Futbol analizlerimizle kazanmaya hazır mısınız?\n\n"
-                "✅ Günlük özel tahminler\n"
-                "✅ Detaylı maç analizleri\n"
-                "✅ İstatistik bazlı seçimler\n\n"
-                "🔥 Premium üyelik fırsatları için DM!"
+        "image": "images/ramen.jpg",
+        "text": "Global Yeni Güvenilir Bahis&Casino Sitesi Ramenbet artık Türkiye'de!\n\n"
+                "60.000 TL'ye kadar İlk Para Yatırma Bonusu!\n"
+                "300 TL FREEBET!\n\n"
+                "Ramenbet'e üye ol 👉\n\n"
+                "Not: 💯💯Güven Onayı ✅\n\n"
+                "Kayıt: https://bit.ly/40JD3GU"
     },
     {
-        "image": "images/reklam2.jpg",
-        "text": "📊 Kazandıran analizler burada!\n\n"
-                "🎯 %85 Tutturma oranı\n"
-                "📱 7/24 Destek\n"
-                "💰 Uygun fiyat garantisi\n\n"
-                "🔥 Özel fırsatları kaçırmayın!"
+        "image": None,  # henüz görsel yok
+        "text": "İskoçyalı & Simyacı'nın ortak VIP kanalında bol bol kazanç fırsatı seni bekliyor! 🍀\n\n"
+                "✅ Günün Türkiye İdeal ve Riskli kuponları 🏆\n"
+                "✅ Sürpriz kuponlar📊\n"
+                "✅ Süper Lig tahminleri ⚽️\n"
+                "✅ Özel oyuncu istatistik tahminleri 🎯\n"
+                "✅ Maçlar hakkında genel ön bilgiler 🔍\n"
+                "✅ Günün tahmin listeleri (2.5 üst/iy 0.5 üst) 📋\n"
+                "➡️ Ve bol bol canlı tahminler olacak! ✨\n\n"
+                "💬 Katılmak için @alchemiist1 veya @iskocyalii ile iletişime geçin!\n\n"
+                "Kazançlı bir haftasonu için doğru yerdesiniz! 💸✅"
     },
     {
-        "image": "images/reklam3.jpg",
-        "text": "⚽ Futbolun matematiği bizde!\n\n"
-                "📈 İstatistik bazlı tahminler\n"
-                "🎯 Günlük özel kuponlar\n"
-                "✨ VIP üyelere özel analizler\n\n"
-                "🔥 Detaylı bilgi için DM!"
+        "image": "images/meta.jpg",
+        "text": "1️⃣0️⃣🔤 YAP 2️⃣0️⃣🔤 ÇEK\n\n"
+                "⭐️100₺ yatır / 1000₺ yap /2000₺ çek\n"
+                "⭐️250₺ yatır / 2500₺ yap / 5000₺ çek\n"
+                "⭐️500₺ yatır / 5000₺ yap / 10000₺ çek\n\n"
+                "🧡Bu promosyon 100₺ ile 500₺ arası yapacağınız yatırıma özeldir.\n\n"
+                "🧡Spor alanında kombine kuponda her maç oranı minimum 1.65 olacak şekilde bahis alınmalıdır.\n\n"
+                "🧡 Casino alanında 4 katı çevirim şartı mevcuttur.\n\n"
+                "🧡Yatırım miktarınızın 10 katı bakiyeye ulaştıktan sonra 20 katı çekim yapabilirsiniz.\n\n"
+                "🧡Yatırım sağladıktan sonra bakiyenizin kullanmadan canlı destek hattına bağlanarak bonusunuzu talep etmeyi unutmayınız!!!\n\n"
+                "✅ https://www.metabetaff.com/go/343434"
     },
     {
-        "image": "images/reklam4.jpg",
-        "text": "🏆 Kazananlar kulübüne katılın!\n\n"
-                "✅ Profesyonel kadro\n"
-                "✅ Garantili hizmet\n"
-                "✅ Özel müşteri desteği\n\n"
-                "🔥 Limited kontenjan için DM!"
+        "image": "images/mega.jpg",
+        "text": "🎁KAMPANYA 🎁\n\n"
+                "Verdiğimiz Mega Linkinden kayıt olup yatırım yapan herkesin kazanacağı ayrıcalıklar 💪\n\n"
+                "➡️1 Aylık tipstergpt.com üyeliği 🤖\n"
+                "➡️1 Aylık Canlı ve Günün Listelerinin bulunduğu VIP grup 😀\n\n"
+                "Yatırım sonrası @iskocyalii adresinden iletişime geçmeniz yeterli olacaktır💎\n"
+                "(Min yatırım 500₺)\n\n"
+                "➡️KAYIT OL: bit.ly/megapari_iskocyali"
     }
 ]
 
@@ -92,6 +105,9 @@ DEFAULT_COMMENTS = [
     "🎯 Uzman ekibimiz bu tahmine güveniyor. Sizin görüşünüz nedir? ⚽",
     "⚽ İstatistikler bu maç için net konuşuyor. Siz ne dersiniz? 🎯"
 ]
+
+# Global variable to keep track of current ad index
+_current_ad_index = 0
 
 def get_db_connection():
     """Veritabanı bağlantısı oluşturur"""
@@ -640,8 +656,15 @@ def create_daily_coupon(predictions: List[Dict[str, Any]], match_count: int = 3)
         logging.error(error_msg)
         return f"❌ {error_msg}"
 
+def get_next_ad() -> Dict[str, Any]:
+    """Sıradaki reklamı döndürür"""
+    global _current_ad_index
+    ad = AD_TEMPLATES[_current_ad_index]
+    _current_ad_index = (_current_ad_index + 1) % len(AD_TEMPLATES)  # Cycle through ads
+    return ad
+
 def get_random_ad() -> Dict[str, Any]:
-    """Rastgele bir reklam şablonu seçer"""
+    """Rastgele bir reklam şablonu seçer (legacy support)"""
     return random.choice(AD_TEMPLATES)
 
 def get_daily_predictions(count: int = 1) -> List[Dict[str, Any]]:
