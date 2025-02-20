@@ -621,7 +621,7 @@ def create_daily_coupon(predictions: List[Dict[str, Any]], match_count: int = 3)
         
         selected_matches = random.sample(valid_predictions, match_count)
         
-        message = "🎯 GÜNÜN KUPONU\n\n"
+        message = "🔥 🎯 GÜNÜN KUPONU 🔥\n\n"
         
         for i, match in enumerate(selected_matches, 1):
             try:

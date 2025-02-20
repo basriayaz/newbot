@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import pytz
 from bot import process_matches
 from telegram_bot import send_message, cleanup, send_photo
+from twitter_bot import send_twitter_message, set_test_mode
 from message_handler import (
     get_major_league_predictions, get_ht_goals_predictions,
     format_prediction_message, create_ht_goals_table_image,
@@ -51,6 +52,7 @@ def send_good_morning():
         weekday = datetime.now(TR_TIMEZONE).weekday()
         message = GOOD_MORNING_MESSAGES.get(weekday, "Günaydın! ⚽")
         send_message(message)
+        send_twitter_message(message)  # Also send to Twitter
     except Exception as e:
         logging.error(f"Günaydın mesajı gönderilirken hata oluştu: {e}")
 
@@ -61,6 +63,7 @@ def send_daily_matches_ready():
                  "📊 Analizler tamamlandı ve sistem hazır.\n" \
                  "👥 Bekleyenler burada mı?"
         send_message(message)
+        send_twitter_message(message)  # Also send to Twitter
     except Exception as e:
         logging.error(f"Maç hazır mesajı gönderilirken hata oluştu: {e}")
 
@@ -84,6 +87,7 @@ def send_first_prediction():
             
             if message:
                 send_message(message)
+                send_twitter_message(message)  # Also send to Twitter
                 logging.info("İlk tahmin başarıyla gönderildi")
             else:
                 error_msg = "❌ Tahmin mesajı oluşturulamadı"
@@ -113,6 +117,7 @@ def send_second_prediction():
             prediction = predictions[1]
             message = format_prediction_message(prediction)
             send_message(message)
+            send_twitter_message(message)  # Also send to Twitter
     except Exception as e:
         logging.error(f"İkinci tahmin gönderilirken hata oluştu: {e}")
 
@@ -151,6 +156,7 @@ def send_third_prediction():
             prediction = predictions[2]
             message = format_prediction_message(prediction)
             send_message(message)
+            send_twitter_message(message)  # Also send to Twitter
     except Exception as e:
         logging.error(f"Üçüncü tahmin gönderilirken hata oluştu: {e}")
 
@@ -162,6 +168,7 @@ def send_fourth_prediction():
             prediction = predictions[3]
             message = format_prediction_message(prediction)
             send_message(message)
+            send_twitter_message(message)  # Also send to Twitter
     except Exception as e:
         logging.error(f"Dördüncü tahmin gönderilirken hata oluştu: {e}")
 
@@ -172,6 +179,7 @@ def send_coupon_announcement():
                  "📊 Major liglerden özel seçimler\n" \
                  "👥 Bekleyenleri görelim!"
         send_message(message)
+        send_twitter_message(message)  # Also send to Twitter
     except Exception as e:
         logging.error(f"Kupon duyurusu gönderilirken hata oluştu: {e}")
 
@@ -196,6 +204,7 @@ def send_daily_coupon():
                 logging.warning(message)
             
             send_message(message)
+            send_twitter_message(message)  # Also send to Twitter
             logging.info("Günün kuponu başarıyla gönderildi")
             
         except Exception as e:
@@ -215,6 +224,7 @@ def send_ht_goals_announcement():
                  "📊 Özel algoritma ile seçilmiş maçlar\n" \
                  "👥 Bekleyenleri görelim!"
         send_message(message)
+        send_twitter_message(message)  # Also send to Twitter
     except Exception as e:
         logging.error(f"İY gol duyurusu gönderilirken hata oluştu: {e}")
 
@@ -241,7 +251,8 @@ def send_ht_goals_list():
                 caption = f"📊 GÜNÜN İLK YARI GOL LİSTESİ"
                 if len(image_paths) > 1:
                     caption += f" ({i}/{len(image_paths)})"
-                photo_message = send_photo(image_path, caption)
+                send_photo(image_path, caption)
+                send_twitter_message(caption, image_path)  # Also send to Twitter with image
                 logging.info(f"İlk yarı gol listesi görseli {i} başarıyla gönderildi")
                 
                 # Görseli sil
@@ -294,6 +305,9 @@ def test_all_functions():
     """Tüm fonksiyonları test eder"""
     print("🔄 Test başlatılıyor...")
     
+    # Enable test mode for Twitter bot
+    set_test_mode(True)
+    
     functions_to_test = [
         ("Maç analizi", daily_match_analysis),
         ("Günaydın mesajı", send_good_morning),
@@ -319,6 +333,9 @@ def test_all_functions():
             print(f"✅ {name} başarılı")
         except Exception as e:
             print(f"❌ {name} hatası: {e}")
+    
+    # Disable test mode after tests
+    set_test_mode(False)
     
     print("\n🏁 Test tamamlandı!")
     cleanup()
