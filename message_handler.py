@@ -6,6 +6,7 @@ from typing import List, Dict, Any
 from dotenv import load_dotenv
 import logging
 from PIL import Image, ImageDraw, ImageFont
+import google.generativeai as genai
 
 # .env dosyasını yükle
 load_dotenv()
@@ -18,10 +19,11 @@ MAJOR_LEAGUES = [
     'Italian Serie A',
     'French Ligue 1',
     'Turkey Super Lig',
-    'UEFA Champions League',
-    'UEFA Europa League',
-    'UEFA Europa Conference League',
-    'England Championship'
+    'Uefa Champions League',
+    'Uefa Europa League',
+    'Uefa Europa Conference League',
+    'England Championship',
+    'Uefa Nations League'
 ]
 
 # Reklam şablonları
@@ -101,13 +103,8 @@ def get_major_league_predictions() -> List[Dict[str, Any]]:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Debug için mevcut ligleri kontrol et
-        cursor.execute("SELECT DISTINCT league FROM matches")
-        available_leagues = cursor.fetchall()
-        logging.info(f"Veritabanındaki ligler: {[league[0] for league in available_leagues]}")
-        
-        # Bugünün tarihini al ve formatla
-        today = datetime.now().strftime("%d/%m/%Y")
+        # Bugünün tarihini YYYY-MM-DD formatında al
+        today = datetime.now().strftime("%Y-%m-%d")
         logging.info(f"Aranan tarih: {today}")
         
         # Major ligler için placeholder oluştur
@@ -119,8 +116,8 @@ def get_major_league_predictions() -> List[Dict[str, Any]]:
                p.ht_goal_prediction, p.risky_prediction
         FROM matches m
         LEFT JOIN predictions p ON m.match_id = p.match_id
-        WHERE m.league IN ({placeholders})
-        AND m.match_date = ?
+        WHERE m.match_date = ?
+        AND m.league IN ({placeholders})
         AND (
             p.over_prediction IS NOT NULL OR 
             p.btts_prediction IS NOT NULL OR 
@@ -138,12 +135,9 @@ def get_major_league_predictions() -> List[Dict[str, Any]]:
         ORDER BY m.match_time ASC
         """
         
-        logging.info(f"Major lig tahminleri alınıyor... (Tarih: {today})")
-        logging.info(f"Aranan ligler: {MAJOR_LEAGUES}")
-        
-        # Major ligler listesine bugünün tarihini ekle
-        query_params = MAJOR_LEAGUES + [today]
-        cursor.execute(query, query_params)
+        # Parametreleri hazırla: önce tarih, sonra major ligler
+        params = [today] + MAJOR_LEAGUES
+        cursor.execute(query, params)
         predictions = cursor.fetchall()
         
         if not predictions:
@@ -167,10 +161,7 @@ def get_major_league_predictions() -> List[Dict[str, Any]]:
                     'ht_goal_prediction': pred[8],
                     'risky_prediction': pred[9]
                 }
-                
-                # Sadece İY gol tahmini olan maçları al
-                if prediction.get('ht_goal_prediction'):
-                    result.append(prediction)
+                result.append(prediction)
                 
             except Exception as e:
                 logging.error(f"Tahmin verisi işlenirken hata: {type(e).__name__}: {str(e)}")
@@ -192,7 +183,8 @@ def get_ht_goals_predictions() -> List[Dict[str, Any]]:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        today = datetime.now().strftime("%d/%m/%Y")
+        # Bugünün tarihini YYYY-MM-DD formatında al
+        today = datetime.now().strftime("%Y-%m-%d")
         
         query = """
         SELECT DISTINCT m.match_id, m.league, m.home_team, m.away_team, m.match_time,
@@ -501,6 +493,38 @@ def generate_prediction_comment(prediction: Dict[str, Any]) -> str:
         logging.error(f"Yorum oluşturulurken hata: {str(e)}")
         return random.choice(DEFAULT_COMMENTS)
 
+def get_ai_comment(prediction: Dict[str, Any]) -> str:
+    """Gemini AI'dan tahmin için yorum alır"""
+    try:
+        genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        
+        # Tahmin bilgilerini metin haline getir
+        match_info = f"Lig: {prediction['league']}\n"
+        match_info += f"Maç: {prediction['home_team']} vs {prediction['away_team']}\n"
+        
+        if prediction.get('match_result_prediction'):
+            match_info += f"Maç Sonucu Tahmini: {prediction['match_result_prediction']}\n"
+        if prediction.get('over_prediction'):
+            match_info += f"Gol Tahmini: {prediction['over_prediction']}\n"
+        if prediction.get('ht_goal_prediction'):
+            match_info += f"İlk Yarı Gol Tahmini: {prediction['ht_goal_prediction']}\n"
+        if prediction.get('risky_prediction'):
+            match_info += f"Riskli Tahmin: {prediction['risky_prediction']}\n"
+            
+        prompt = f"""Aşağıdaki futbol maç tahminini analiz et ve 2 cümlelik profesyonel bir yorum yaz.
+        Yorumun ilk cümlesi tahminle ilgili olumlu bir analiz, ikinci cümlesi ise dikkat edilmesi gereken bir nokta olsun.
+        Yanıt maksimum 2 cümle olmalı.
+        
+        {match_info}"""
+        
+        response = model.generate_content(prompt)
+        return response.text.strip()
+        
+    except Exception as e:
+        logging.error(f"AI yorum alınırken hata: {str(e)}")
+        return "AI yorumu alınamadı."
+
 def format_prediction_message(prediction: Dict[str, Any]) -> str:
     """Tahmin mesajını formatlar"""
     try:
@@ -513,12 +537,13 @@ def format_prediction_message(prediction: Dict[str, Any]) -> str:
         if missing_fields:
             raise ValueError(f"Eksik alanlar: {', '.join(missing_fields)}")
         
-        # Bugünün tarihini al ve formatla
-        today = datetime.now().strftime("%d/%m/%Y")
+        # Bugünün tarihini YYYY-MM-DD formatında al ve görüntüleme için DD/MM/YYYY'ye çevir
+        today = datetime.now().strftime("%Y-%m-%d")
+        display_date = datetime.strptime(today, "%Y-%m-%d").strftime("%d/%m/%Y")
             
         message = f"🏆 {prediction['league']}\n"
         message += f"⚽ {prediction['home_team']} - {prediction['away_team']}\n"
-        message += f"📅 {today} | ⏰ {prediction['match_time']}\n\n"
+        message += f"📅 {display_date} | ⏰ {prediction['match_time']}\n\n"
         
         # Tahminleri kontrol et ve ekle
         predictions_found = False
@@ -546,6 +571,10 @@ def format_prediction_message(prediction: Dict[str, Any]) -> str:
             logging.error(f"İY: {prediction.get('ht_goal_prediction')}")
             logging.error(f"Riskli: {prediction.get('risky_prediction')}")
             raise ValueError(f"Geçerli tahmin bulunamadı (Maç ID: {prediction.get('match_id', '?')})")
+        
+        # AI yorumunu al ve ekle
+        ai_comment = get_ai_comment(prediction)
+        message += f"\n🤖 AI Yorumu:\n{ai_comment}\n"
         
         # Site linkini ekle
         message += "\n🌐 tipstergpt.com"
@@ -621,7 +650,10 @@ def get_daily_predictions(count: int = 1) -> List[Dict[str, Any]]:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        today = datetime.now().strftime("%d/%m/%Y")
+        # Bugünün tarihini YYYY-MM-DD formatında al
+        today = datetime.now().strftime("%Y-%m-%d")
+        
+        # Major ligler için placeholder oluştur
         placeholders = ','.join(['?' for _ in MAJOR_LEAGUES])
         
         query = f"""
@@ -630,8 +662,8 @@ def get_daily_predictions(count: int = 1) -> List[Dict[str, Any]]:
                p.ht_goal_prediction, p.risky_prediction
         FROM matches m
         LEFT JOIN predictions p ON m.match_id = p.match_id
-        WHERE m.league IN ({placeholders})
-        AND m.match_date = ?
+        WHERE m.match_date = ?
+        AND m.league IN ({placeholders})
         AND (
             p.over_prediction IS NOT NULL OR 
             p.btts_prediction IS NOT NULL OR 
@@ -648,8 +680,9 @@ def get_daily_predictions(count: int = 1) -> List[Dict[str, Any]]:
         LIMIT ?
         """
         
-        query_params = MAJOR_LEAGUES + [today, count]
-        cursor.execute(query, query_params)
+        # Parametreleri hazırla: önce tarih, sonra major ligler, en son limit
+        params = [today] + MAJOR_LEAGUES + [count]
+        cursor.execute(query, params)
         predictions = cursor.fetchall()
         
         result = []

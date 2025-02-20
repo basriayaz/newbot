@@ -279,17 +279,17 @@ def test_all_functions():
     print("🔄 Test başlatılıyor...")
     
     functions_to_test = [
-        #("Maç analizi", daily_match_analysis),
-        #("Günaydın mesajı", send_good_morning),
-        #("Maçlar hazır mesajı", send_daily_matches_ready),
-        #("İlk tahmin", send_first_prediction),
-        #("İkinci tahmin", send_second_prediction),
-        #("Reklam", send_advertisement),
-        #("Üçüncü tahmin", send_third_prediction),
-        #("Dördüncü tahmin", send_fourth_prediction),
-        #("Kupon duyurusu", send_coupon_announcement),
-        #("Günün kuponu", send_daily_coupon),
-        #("İY gol duyurusu", send_ht_goals_announcement),
+        ("Maç analizi", daily_match_analysis),
+        ("Günaydın mesajı", send_good_morning),
+        ("Maçlar hazır mesajı", send_daily_matches_ready),
+        ("İlk tahmin", send_first_prediction),
+        ("İkinci tahmin", send_second_prediction),
+        ("Reklam", send_advertisement),
+        ("Üçüncü tahmin", send_third_prediction),
+        ("Dördüncü tahmin", send_fourth_prediction),
+        ("Kupon duyurusu", send_coupon_announcement),
+        ("Günün kuponu", send_daily_coupon),
+        ("İY gol duyurusu", send_ht_goals_announcement),
         ("İY gol listesi", send_ht_goals_list),
     ]
     

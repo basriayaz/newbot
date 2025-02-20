@@ -9,8 +9,9 @@ Major ligler
 'French Ligue 1',
 'Turkey Super Lig',
 'Uefa Champions League',
-'uefa europa league',
-'uefa Europa Conference League',
-'england Championship',
+'Uefa Europa League',
+'Uefa Europa Conference League',
+'England Championship',
+'Uefa Nations League',
 
 ]

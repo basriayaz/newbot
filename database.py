@@ -269,38 +269,6 @@ def format_date(date_str: str) -> str:
         logging.error(f"Tarih formatlanırken hata: {str(e)}")
         raise
 
-def normalize_league_name(league: str) -> str:
-    """Lig ismini standardize eder"""
-    try:
-        # Lig isimlerini standart formata çevir
-        league = league.strip().lower()
-        
-        # Lig isimleri eşleştirme tablosu
-        league_mapping = {
-            'laliga': 'Spanish La Liga',
-            'premier league': 'English Premier League',
-            'bundesliga': 'German Bundesliga',
-            'serie a': 'Italian Serie A',
-            'ligue 1': 'French Ligue 1',
-            'super lig': 'Turkey Super Lig',
-            'champions league': 'UEFA Champions League',
-            'europa league': 'UEFA Europa League',
-            'conference league': 'UEFA Europa Conference League',
-            'championship': 'England Championship'
-        }
-        
-        # Eşleştirme varsa standart ismi döndür
-        for key, value in league_mapping.items():
-            if key in league:
-                return value
-                
-        # Eşleştirme yoksa orijinal ismi döndür
-        return league.title()
-        
-    except Exception as e:
-        logging.error(f"Lig ismi normalize edilirken hata: {str(e)}")
-        return league
-
 def insert_match_info(conn, match_data: Dict[str, Any]):
     """Maç bilgilerini veritabanına ekler veya günceller"""
     cursor = conn.cursor()
@@ -308,9 +276,6 @@ def insert_match_info(conn, match_data: Dict[str, Any]):
     try:
         # Tarih formatını standardize et
         match_date = format_date(match_data['info']['mac_tarihi'])
-        
-        # Lig ismini standardize et
-        league_name = normalize_league_name(match_data['info']['lig'])
         
         # Önce maçın var olup olmadığını kontrol et
         cursor.execute("""
@@ -336,7 +301,7 @@ def insert_match_info(conn, match_data: Dict[str, Any]):
             """, (
                 match_date,
                 match_data['info']['mac_saati'],
-                league_name,
+                match_data['info']['lig'],  # Lig ismi olduğu gibi kullanılıyor
                 match_data['info']['mac'].split(' - ')[0],
                 match_data['info']['mac'].split(' - ')[1],
                 match_data['info']['stadium'],
@@ -356,7 +321,7 @@ def insert_match_info(conn, match_data: Dict[str, Any]):
                 match_data['info']['id'],
                 match_date,
                 match_data['info']['mac_saati'],
-                league_name,
+                match_data['info']['lig'],  # Lig ismi olduğu gibi kullanılıyor
                 match_data['info']['mac'].split(' - ')[0],
                 match_data['info']['mac'].split(' - ')[1],
                 match_data['info']['stadium'],
