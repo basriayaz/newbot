@@ -40,11 +40,11 @@ def daily_match_analysis():
     logging.info("Günlük maç analizi başlatılıyor...")
     try:
         process_matches()
-        send_message("✅ Günün maçları analiz edildi ve veritabanına kaydedildi.")
+        logging.info("✅ Günün maçları analiz edildi ve veritabanına kaydedildi.")
     except Exception as e:
         error_msg = f"❌ Maç analizi sırasında hata oluştu: {str(e)}"
         logging.error(error_msg)
-        send_message(error_msg)
+        send_message(error_msg)  # Sadece hata durumunda mesaj gönder
 
 def send_good_morning():
     """Günaydın mesajı gönderir"""
@@ -301,6 +301,18 @@ def send_major_league_predictions():
         logging.error(error_msg)
         send_message(error_msg)
 
+def send_good_night():
+    """Günün sonunda iyi geceler mesajı gönderir"""
+    try:
+        message = "🌙 Günün sonuna geldik!\n\n" \
+                 "📊 Tahminleri takip eden ve değerlendiren herkesi tebrik ederiz.\n" \
+                 "💫 Yarın yeni tahminlerle tekrar birlikteyiz!\n\n" \
+                 "😴 İyi geceler! #tipstergpt"
+        send_message(message)
+        send_twitter_message(message)  # Also send to Twitter
+    except Exception as e:
+        logging.error(f"İyi geceler mesajı gönderilirken hata oluştu: {e}")
+
 def test_all_functions():
     """Tüm fonksiyonları test eder"""
     print("🔄 Test başlatılıyor...")
@@ -324,6 +336,7 @@ def test_all_functions():
         ("Reklam 4", send_advertisement),  # Fourth ad after daily coupon
         ("İY gol duyurusu", send_ht_goals_announcement),
         ("İY gol listesi", send_ht_goals_list),
+        ("İyi geceler mesajı", send_good_night),  # Added good night message test
     ]
     
     for name, func in functions_to_test:
@@ -364,6 +377,9 @@ def run_scheduler():
     # İlk yarı gol listesi
     schedule.every().day.at("14:00").do(send_ht_goals_announcement)
     schedule.every().day.at("14:30").do(send_ht_goals_list)
+    
+    # İyi geceler mesajı
+    schedule.every().day.at("00:20").do(send_good_night)
     
     while True:
         try:

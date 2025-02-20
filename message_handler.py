@@ -77,18 +77,18 @@ AD_TEMPLATES = [
 
 # Günlük mesaj şablonları
 GOOD_MORNING_MESSAGES = {
-    0: "🌅 Günaydın! Yeni bir haftaya başlıyoruz. Bugün kazanmak için hazır mısınız? ⚽",  # Pazartesi
-    1: "🌞 Günaydın! Salı günü futbol heyecanı başlıyor. Analizlerimiz hazır! 📊",  # Salı
-    2: "🌄 Günaydın! Çarşamba günü kazandırmaya devam ediyoruz! 💪",  # Çarşamba
-    3: "🌅 Günaydın! Perşembe günü futbol şöleni başlıyor! Hazır mısınız? ⚽",  # Perşembe
-    4: "🌞 Günaydın! Cuma günü için özel analizlerimiz hazır! 📈",  # Cuma
-    5: "🌄 Günaydın! Cumartesi futbol keyfi başlıyor! Analizlerimiz hazır! ⚽",  # Cumartesi
-    6: "🌅 Günaydın! Pazar günü futbol şöleni ile birlikteyiz! 🎯"  # Pazar
+    0: "🌅 Günaydın! Yeni bir haftaya başlıyoruz. Herkese Bol kazançlı bir gün diliyorum ⚽",  # Pazartesi
+    1: "🌞 Günaydın! Salı günü güzel maçlar var. Analizlerimiz hazır! Herkese bol kazançlı bir gün diliyorum 📊",  # Salı
+    2: "🌄 Günaydın! Herkese bol kazançlı bir gün diliyorum Kazandırmaya devam edeceğiz💪",  # Çarşamba
+    3: "🌅 Günaydın! Yeni bir günden herkese merhaba! Kazanmaya Hazır mısınız? ⚽",  # Perşembe
+    4: "🌞 Günaydın! Bugün harika maçlar var. Sizin için özel analizlerimiz hazır! 📈",  # Cuma
+    5: "🌄 Günaydın! Hafta sonu geldi, kazanmanın zamanıdır! Analizlerimiz hazır! ⚽Herkese bol kazançlı bir gün diliyorum",  # Cumartesi
+    6: "🌅 Günaydın! Pazar günü futbol şöleni ile birlikteyiz! 🎯Herkese bol kazançlı bir gün diliyorum"  # Pazar
 }
 
 READY_MESSAGES = {
     "matches": "📢 Günün maçları hazır! Bekleyenler burada mı? 🤔\n\n⚽ Özel analizlerimiz birazdan sizlerle! 🎯",
-    "coupon": "🎯 Günün kuponu hazırlanıyor!\n\n⚽ Kazandıran analizler birazdan sizlerle! 📈",
+    "coupon": "🎯 Günün kuponu hazırlanıyor!\n\n⚽ Bekleyenler varsa biraz sonra kuponu paylaşacağız! 📈",
     "ht_goals": "⏱ Günün İlk Yarı Gol Listesi hazırlanıyor!\n\n⚽ Özel analizlerimiz birazdan sizlerle! 🎯"
 }
 
