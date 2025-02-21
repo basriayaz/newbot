@@ -9,15 +9,13 @@ from message_handler import (
     get_major_league_predictions, get_ht_goals_predictions,
     format_prediction_message, create_ht_goals_table_image,
     get_next_ad, create_daily_coupon, generate_prediction_comment,
-    get_good_morning_message, get_ready_message, get_random_ad
+    get_good_morning_message, get_ready_message, get_random_ad,
+    TR_TIMEZONE
 )
 import logging
 import sys
 import atexit
 import os
-
-# Türkiye saat dilimi
-TR_TIMEZONE = pytz.timezone('Europe/Istanbul')
 
 # Haftanın günleri için günaydın mesajları
 GOOD_MORNING_MESSAGES = {
@@ -315,7 +313,7 @@ def send_good_night():
 
 def test_all_functions():
     """Tüm fonksiyonları test eder"""
-    print("🔄 Test başlatılıyor...")
+    print(f"🔄 Test başlatılıyor... (Türkiye Saati: {datetime.now(TR_TIMEZONE).strftime('%H:%M:%S')})")
     
     # Enable test mode for Twitter bot
     set_test_mode(True)
@@ -336,12 +334,12 @@ def test_all_functions():
         ("Reklam 4", send_advertisement),  # Fourth ad after daily coupon
         ("İY gol duyurusu", send_ht_goals_announcement),
         ("İY gol listesi", send_ht_goals_list),
-        ("İyi geceler mesajı", send_good_night),  # Added good night message test
+        ("İyi geceler mesajı", send_good_night),
     ]
     
     for name, func in functions_to_test:
         try:
-            print(f"\n📋 {name} testi...")
+            print(f"\n📋 {name} testi... (Saat: {datetime.now(TR_TIMEZONE).strftime('%H:%M:%S')})")
             func()
             print(f"✅ {name} başarılı")
         except Exception as e:
@@ -350,12 +348,12 @@ def test_all_functions():
     # Disable test mode after tests
     set_test_mode(False)
     
-    print("\n🏁 Test tamamlandı!")
+    print(f"\n🏁 Test tamamlandı! (Türkiye Saati: {datetime.now(TR_TIMEZONE).strftime('%H:%M:%S')})")
     cleanup()
 
 def run_scheduler():
     """Zamanlanmış görevleri çalıştırır"""
-    # Mevcut görevler
+    # Tüm zamanlamalar Türkiye saatine göre (UTC+3)
     schedule.every().day.at("07:00").do(daily_match_analysis)
     schedule.every().day.at("10:50").do(send_good_morning)
     schedule.every().day.at("11:30").do(send_daily_matches_ready)
@@ -383,6 +381,8 @@ def run_scheduler():
     
     while True:
         try:
+            # Türkiye saatine göre kontrol et
+            now = datetime.now(TR_TIMEZONE)
             schedule.run_pending()
             time.sleep(30)
         except Exception as e:

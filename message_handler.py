@@ -7,9 +7,13 @@ from dotenv import load_dotenv
 import logging
 from PIL import Image, ImageDraw, ImageFont
 import google.generativeai as genai
+import pytz
 
 # .env dosyasını yükle
 load_dotenv()
+
+# Türkiye saat dilimi
+TR_TIMEZONE = pytz.timezone('Europe/Istanbul')
 
 # Major ligler listesi
 MAJOR_LEAGUES = [
@@ -119,8 +123,8 @@ def get_major_league_predictions() -> List[Dict[str, Any]]:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Bugünün tarihini YYYY-MM-DD formatında al
-        today = datetime.now().strftime("%Y-%m-%d")
+        # Bugünün tarihini Türkiye saatine göre al
+        today = datetime.now(TR_TIMEZONE).strftime("%Y-%m-%d")
         logging.info(f"Aranan tarih: {today}")
         
         # Major ligler için placeholder oluştur
@@ -199,8 +203,8 @@ def get_ht_goals_predictions() -> List[Dict[str, Any]]:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Bugünün tarihini YYYY-MM-DD formatında al
-        today = datetime.now().strftime("%Y-%m-%d")
+        # Bugünün tarihini Türkiye saatine göre al
+        today = datetime.now(TR_TIMEZONE).strftime("%Y-%m-%d")
         
         query = """
         SELECT DISTINCT m.match_id, m.league, m.home_team, m.away_team, m.match_time,
@@ -553,8 +557,8 @@ def format_prediction_message(prediction: Dict[str, Any]) -> str:
         if missing_fields:
             raise ValueError(f"Eksik alanlar: {', '.join(missing_fields)}")
         
-        # Bugünün tarihini YYYY-MM-DD formatında al ve görüntüleme için DD/MM/YYYY'ye çevir
-        today = datetime.now().strftime("%Y-%m-%d")
+        # Bugünün tarihini Türkiye saatine göre al
+        today = datetime.now(TR_TIMEZONE).strftime("%Y-%m-%d")
         display_date = datetime.strptime(today, "%Y-%m-%d").strftime("%d/%m/%Y")
             
         message = f"🏆 {prediction['league']}\n"
@@ -673,8 +677,8 @@ def get_daily_predictions(count: int = 1) -> List[Dict[str, Any]]:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Bugünün tarihini YYYY-MM-DD formatında al
-        today = datetime.now().strftime("%Y-%m-%d")
+        # Bugünün tarihini Türkiye saatine göre al
+        today = datetime.now(TR_TIMEZONE).strftime("%Y-%m-%d")
         
         # Major ligler için placeholder oluştur
         placeholders = ','.join(['?' for _ in MAJOR_LEAGUES])
@@ -735,7 +739,8 @@ def get_daily_predictions(count: int = 1) -> List[Dict[str, Any]]:
 
 def get_good_morning_message() -> str:
     """Günün günaydın mesajını döndürür"""
-    weekday = datetime.now().weekday()
+    # Türkiye saatine göre haftanın gününü al
+    weekday = datetime.now(TR_TIMEZONE).weekday()
     return GOOD_MORNING_MESSAGES.get(weekday, GOOD_MORNING_MESSAGES[0])
 
 def get_ready_message(message_type: str) -> str:
