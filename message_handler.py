@@ -266,43 +266,32 @@ def get_ht_goals_predictions() -> List[Dict[str, Any]]:
 def get_default_font(size: int):
     """Varsayılan fontu döndürür"""
     try:
-        # Önce fonts klasörünü kontrol et
-        if not os.path.exists('fonts'):
-            os.makedirs('fonts')
+        # PIL'in varsayılan fontunu yükle
+        default_font = ImageFont.load_default()
+        
+        # Boyutu artırmak için yeni bir font oluştur
+        # size parametresini 1.5 ile çarp ki daha büyük olsun
+        enlarged_size = int(size * 1.5)
+        
+        try:
+            # Önce TrueType font olarak yüklemeyi dene
+            return ImageFont.truetype(font=default_font, size=enlarged_size)
+        except Exception:
+            # TrueType olarak yükleme başarısız olursa bitmap font kullan
+            return ImageFont.load_default()
             
-        font_path = 'fonts/DejaVuSans.ttf'
-        
-        # Font dosyası yoksa internetten indir
-        if not os.path.exists(font_path):
-            font_url = "https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans.ttf"
-            urllib.request.urlretrieve(font_url, font_path)
-            logging.info(f"Font dosyası indirildi: {font_path}")
-        
-        # Font dosyasını yükle
-        return ImageFont.truetype(font_path, size)
-        
     except Exception as e:
         logging.error(f"Font yüklenirken hata: {str(e)}")
-        try:
-            # PIL'in varsayılan fontunu kullan ve boyutunu artır
-            default_font = ImageFont.load_default()
-            # Boyutu 2 katına çıkar
-            font = ImageFont.ImageFont._load_pilfont_data(
-                default_font,
-                size * 2
-            )
-            return font
-        except Exception as e:
-            logging.error(f"Varsayılan font ayarlanırken hata: {str(e)}")
-            return ImageFont.load_default()
+        # En son çare olarak PIL'in temel fontunu kullan
+        return ImageFont.load_default()
 
 def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
     """İlk yarı gol tahminlerini görsel tablo olarak oluşturur"""
     
     # Font boyutları - daha da büyük boyutlar
-    title_font_size = 72
-    header_font_size = 56
-    content_font_size = 48
+    title_font_size = 96
+    header_font_size = 72
+    content_font_size = 64
     
     # Renk tanımları
     background_color = (240, 242, 245)  # Arka plan rengi
@@ -312,19 +301,19 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
     border_color = (189, 195, 199)      # Şık gri kenarlık
     alt_row_color = (236, 240, 241)     # Alternatif satır rengi
     
-    # Sütun genişlikleri - artırılmış değerler
-    time_width = 150      # Saat sütunu genişliği
-    league_width = 350    # Lig sütunu genişliği
-    match_width = 700     # Maç sütunu genişliği
-    prediction_width = 200 # Tahmin sütunu genişliği
-    percent_width = 200   # Yüzde sütunları genişliği
+    # Sütun genişlikleri - daha da artırılmış değerler
+    time_width = 200      # Saat sütunu genişliği
+    league_width = 400    # Lig sütunu genişliği
+    match_width = 800     # Maç sütunu genişliği
+    prediction_width = 250 # Tahmin sütunu genişliği
+    percent_width = 250   # Yüzde sütunları genişliği
     
-    # Satır yüksekliği ve kenar boşlukları - artırılmış değerler
-    row_height = 80
-    header_height = 100
-    title_height = 140
-    margin = 60
-    padding = 30
+    # Satır yüksekliği ve kenar boşlukları - daha da artırılmış değerler
+    row_height = 100
+    header_height = 120
+    title_height = 160
+    margin = 80
+    padding = 40
     
     # Maksimum karakter uzunlukları
     max_league_chars = 20
