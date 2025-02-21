@@ -265,32 +265,32 @@ def get_ht_goals_predictions() -> List[Dict[str, Any]]:
 def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
     """İlk yarı gol tahminlerini görsel tablo olarak oluşturur"""
     
-    # Font boyutları (büyütüldü)
-    title_font_size = 72
-    header_font_size = 54
-    content_font_size = 42
+    # Font boyutları (daha da büyütüldü)
+    title_font_size = 96
+    header_font_size = 72
+    content_font_size = 60
     
     # Font yükleme fonksiyonu
-    def load_font(size: int, is_bold: bool = False) -> ImageFont.FreeTypeFont:
+    def load_font(size: int) -> ImageFont.FreeTypeFont:
         """Fontu yükler, bulamazsa varsayılan fontu kullanır"""
         try:
-            # Önce Arial'i dene
-            font_path = "Arial.ttf" if not is_bold else "Arial Bold.ttf"
+            # Linux sistemlerde genelde bulunan DejaVuSans fontunu dene
+            font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
             return ImageFont.truetype(font_path, size)
         except:
             try:
-                # Arial bulunamazsa DejaVuSans dene (Linux sistemlerde genelde vardır)
-                font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf" if not is_bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+                # Ubuntu sistemlerde genelde bulunan Liberation Sans fontunu dene
+                font_path = "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
                 return ImageFont.truetype(font_path, size)
             except:
                 try:
-                    # Son çare olarak PIL'in varsayılan fontunu kullan ve boyutu büyüt
-                    default_font = ImageFont.load_default()
-                    # Varsayılan font çok küçük olduğu için boyutu 2 katına çıkar
-                    return ImageFont.truetype(default_font.path, size * 2)
+                    # MacOS için sistem fontunu dene
+                    font_path = "/System/Library/Fonts/Helvetica.ttc"
+                    return ImageFont.truetype(font_path, size)
                 except:
-                    # Hiçbir şey bulunamazsa en basit varsayılan fonta dön
-                    return ImageFont.load_default()
+                    # Hiçbir font bulunamazsa varsayılan fontu kullan ve boyutu 3 katına çıkar
+                    default_font = ImageFont.load_default()
+                    return ImageFont.truetype(default_font.path, size * 3)
     
     # Renk tanımları
     background_color = (240, 242, 245)  # Arka plan rengi
@@ -300,23 +300,26 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
     border_color = (189, 195, 199)      # Şık gri kenarlık
     alt_row_color = (236, 240, 241)     # Alternatif satır rengi
     
-    # Sütun genişlikleri (artırıldı)
-    time_width = 180       # Saat sütunu genişliği
-    league_width = 400     # Lig sütunu genişliği
-    match_width = 800      # Maç sütunu genişliği
-    prediction_width = 250 # Tahmin sütunu genişliği
-    percent_width = 250    # Yüzde sütunları genişliği
+    # Sütun genişlikleri (daha da artırıldı)
+    time_width = 250       # Saat sütunu genişliği
+    league_width = 500     # Lig sütunu genişliği
+    match_width = 1000     # Maç sütunu genişliği
+    prediction_width = 300 # Tahmin sütunu genişliği
+    percent_width = 300    # Yüzde sütunları genişliği
     
-    # Satır yüksekliği ve kenar boşlukları (artırıldı)
-    row_height = 80
-    header_height = 100
-    title_height = 120
-    margin = 50
-    padding = 30
+    # Satır yüksekliği ve kenar boşlukları (daha da artırıldı)
+    row_height = 100
+    header_height = 120
+    title_height = 150
+    margin = 60
+    padding = 40
     
     # Maksimum karakter uzunlukları
     max_league_chars = 25
     max_match_chars = 45
+    
+    # Her sayfada gösterilecek maksimum tahmin sayısı (azaltıldı)
+    max_predictions_per_image = 30
     
     def truncate_text(text: str, max_chars: int) -> str:
         """Metni belirli bir uzunlukta kısaltır"""
@@ -334,7 +337,6 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
         return x_start + (available_width - text_width) // 2
     
     # Tahminleri gruplara ayır
-    max_predictions_per_image = 40
     prediction_groups = [predictions[i:i + max_predictions_per_image] 
                         for i in range(0, len(predictions), max_predictions_per_image)]
     
@@ -351,8 +353,8 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
         draw = ImageDraw.Draw(img)
         
         # Font yükleme
-        title_font = load_font(title_font_size, True)  # Başlık için kalın font
-        header_font = load_font(header_font_size, True)  # Başlıklar için kalın font
+        title_font = load_font(title_font_size)  # Başlık için normal font
+        header_font = load_font(header_font_size)  # Başlıklar için normal font
         content_font = load_font(content_font_size)  # İçerik için normal font
         
         # Başlık
