@@ -272,25 +272,16 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
     
     # Font yükleme fonksiyonu
     def load_font(size: int) -> ImageFont.FreeTypeFont:
-        """Fontu yükler, bulamazsa varsayılan fontu kullanır"""
+        """Varsayılan fontu yükler ve boyutunu büyütür"""
         try:
-            # Linux sistemlerde genelde bulunan DejaVuSans fontunu dene
-            font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-            return ImageFont.truetype(font_path, size)
-        except:
-            try:
-                # Ubuntu sistemlerde genelde bulunan Liberation Sans fontunu dene
-                font_path = "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
-                return ImageFont.truetype(font_path, size)
-            except:
-                try:
-                    # MacOS için sistem fontunu dene
-                    font_path = "/System/Library/Fonts/Helvetica.ttc"
-                    return ImageFont.truetype(font_path, size)
-                except:
-                    # Hiçbir font bulunamazsa varsayılan fontu kullan ve boyutu 3 katına çıkar
-                    default_font = ImageFont.load_default()
-                    return ImageFont.truetype(default_font.path, size * 3)
+            # PIL'in varsayılan fontunu kullan
+            default_font = ImageFont.load_default()
+            # Boyutu büyüt
+            return ImageFont.truetype(default_font.path, size * 4)  # 4 katına çıkarıldı
+        except Exception as e:
+            logging.error(f"Font yüklenirken hata: {e}")
+            # Hata durumunda varsayılan fontu döndür
+            return ImageFont.load_default()
     
     # Renk tanımları
     background_color = (240, 242, 245)  # Arka plan rengi
@@ -301,25 +292,25 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
     alt_row_color = (236, 240, 241)     # Alternatif satır rengi
     
     # Sütun genişlikleri (daha da artırıldı)
-    time_width = 250       # Saat sütunu genişliği
-    league_width = 500     # Lig sütunu genişliği
-    match_width = 1000     # Maç sütunu genişliği
-    prediction_width = 300 # Tahmin sütunu genişliği
-    percent_width = 300    # Yüzde sütunları genişliği
+    time_width = 300       # Saat sütunu genişliği
+    league_width = 600     # Lig sütunu genişliği
+    match_width = 1200     # Maç sütunu genişliği
+    prediction_width = 400 # Tahmin sütunu genişliği
+    percent_width = 400    # Yüzde sütunları genişliği
     
     # Satır yüksekliği ve kenar boşlukları (daha da artırıldı)
-    row_height = 100
-    header_height = 120
-    title_height = 150
-    margin = 60
-    padding = 40
+    row_height = 120
+    header_height = 150
+    title_height = 180
+    margin = 80
+    padding = 50
     
     # Maksimum karakter uzunlukları
     max_league_chars = 25
     max_match_chars = 45
     
     # Her sayfada gösterilecek maksimum tahmin sayısı (azaltıldı)
-    max_predictions_per_image = 30
+    max_predictions_per_image = 20  # Daha az tahmin ama daha büyük yazılar
     
     def truncate_text(text: str, max_chars: int) -> str:
         """Metni belirli bir uzunlukta kısaltır"""
