@@ -265,10 +265,10 @@ def get_ht_goals_predictions() -> List[Dict[str, Any]]:
 def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
     """İlk yarı gol tahminlerini görsel tablo olarak oluşturur"""
     
-    # Font boyutları (büyütüldü)
-    title_font_size = 72
-    header_font_size = 54
-    content_font_size = 42
+    # Font boyutları
+    title_font_size = 48
+    header_font_size = 36
+    content_font_size = 28
     
     # Renk tanımları
     background_color = (240, 242, 245)  # Arka plan rengi
@@ -278,40 +278,23 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
     border_color = (189, 195, 199)      # Şık gri kenarlık
     alt_row_color = (236, 240, 241)     # Alternatif satır rengi
     
-    # Sütun genişlikleri (artırıldı)
-    time_width = 180       # Saat sütunu genişliği
-    league_width = 450     # Lig sütunu genişliği
-    match_width = 900      # Maç sütunu genişliği
-    prediction_width = 270 # Tahmin sütunu genişliği
-    percent_width = 270    # Yüzde sütunları genişliği
+    # Sütun genişlikleri
+    time_width = 120      # Saat sütunu genişliği
+    league_width = 300    # Lig sütunu genişliği
+    match_width = 600     # Maç sütunu genişliği
+    prediction_width = 180 # Tahmin sütunu genişliği
+    percent_width = 180   # Yüzde sütunları genişliği
     
-    # Satır yüksekliği ve kenar boşlukları (artırıldı)
-    row_height = 82
-    header_height = 120
-    title_height = 150
-    margin = 60
-    padding = 30
+    # Satır yüksekliği ve kenar boşlukları
+    row_height = 55
+    header_height = 80
+    title_height = 100
+    margin = 40
+    padding = 20
     
     # Maksimum karakter uzunlukları
-    max_league_chars = 25
-    max_match_chars = 45
-    
-    def get_system_font():
-        """Sistem fontunu belirler"""
-        try:
-            # Önce Arial'i dene
-            return ImageFont.truetype("Arial.ttf", content_font_size)
-        except:
-            try:
-                # MacOS için
-                return ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", content_font_size)
-            except:
-                try:
-                    # Linux için
-                    return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", content_font_size)
-                except:
-                    # Hiçbiri yoksa varsayılan fontu kullan
-                    return ImageFont.load_default()
+    max_league_chars = 20
+    max_match_chars = 40
     
     def truncate_text(text: str, max_chars: int) -> str:
         """Metni belirli bir uzunlukta kısaltır"""
@@ -328,67 +311,65 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
         text_width = bbox[2] - bbox[0]
         return x_start + (available_width - text_width) // 2
     
-    # Tahminleri gruplara ayır (sayfa başına daha az tahmin)
-    max_predictions_per_image = 30
+    # Tahminleri gruplara ayır
+    max_predictions_per_image = 40
     prediction_groups = [predictions[i:i + max_predictions_per_image] 
                         for i in range(0, len(predictions), max_predictions_per_image)]
     
     image_paths = []
     
     for group_index, group in enumerate(prediction_groups, 1):
-        # Görsel boyutları (artırıldı)
+        # Görsel boyutları
         total_width = time_width + league_width + match_width + prediction_width + (percent_width * 2) + (margin * 2)
         total_height = (title_height + header_height + 
                        (row_height * len(group)) + (margin * 2))
         
-        # Yeni görsel oluştur (2x çözünürlük)
-        img = Image.new('RGB', (total_width * 2, total_height * 2), background_color)
+        # Yeni görsel oluştur
+        img = Image.new('RGB', (total_width, total_height), background_color)
         draw = ImageDraw.Draw(img)
         
-        # Font yükleme
         try:
-            title_font = get_system_font().font_variant(size=title_font_size * 2)
-            header_font = get_system_font().font_variant(size=header_font_size * 2)
-            content_font = get_system_font().font_variant(size=content_font_size * 2)
+            title_font = ImageFont.truetype("Arial.ttf", title_font_size)
+            header_font = ImageFont.truetype("Arial.ttf", header_font_size)
+            content_font = ImageFont.truetype("Arial.ttf", content_font_size)
         except:
-            # Varsayılan fontları kullan
             title_font = ImageFont.load_default()
             header_font = ImageFont.load_default()
             content_font = ImageFont.load_default()
         
         # Başlık
         title_text = f"İlk Yarı Gol Listesi {group_index}/{len(prediction_groups)}"
-        title_x = get_centered_text_position(title_text, title_font, total_width * 2, 0)
+        title_x = get_centered_text_position(title_text, title_font, total_width, 0)
         draw.text(
-            (title_x, margin * 2),
+            (title_x, margin),
             title_text,
             font=title_font,
             fill=header_bg_color
         )
         
         # Başlık altı çizgisi
-        y_pos = margin * 2 + title_height - 10
-        draw.line([(margin * 2, y_pos), (total_width * 2 - margin * 2, y_pos)], 
+        y_pos = margin + title_height - 10
+        draw.line([(margin, y_pos), (total_width - margin, y_pos)], 
                  fill=header_bg_color, width=3)
         
         # Başlık alanı
-        header_y = margin * 2 + title_height
+        header_y = margin + title_height
         draw.rectangle(
-            [(margin * 2, header_y),
-             (total_width * 2 - margin * 2, header_y + header_height)],
+            [(margin, header_y),
+             (total_width - margin, header_y + header_height)],
             fill=header_bg_color,
             width=0
         )
         
         # Başlık metinleri
-        x_pos = margin * 2
+        x_pos = margin
         headers = ["Saat", "Lig", "Maç", "Tahmin", "İY 0.5 Üst", "İY 1.5 Üst"]
         widths = [time_width, league_width, match_width, prediction_width, percent_width, percent_width]
         
         for header, width in zip(headers, widths):
-            text_x = get_centered_text_position(header, header_font, width * 2, x_pos * 2)
+            text_x = get_centered_text_position(header, header_font, width, x_pos)
             draw.text(
-                (text_x, header_y + (header_height - header_font_size * 2) // 2),
+                (text_x, header_y + (header_height - header_font_size) // 2),
                 header,
                 font=header_font,
                 fill=header_text_color
@@ -396,31 +377,31 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
             x_pos += width
         
         # İçerik
-        y_pos = margin * 2 + title_height + header_height
+        y_pos = margin + title_height + header_height
         for i, pred in enumerate(group):
             # Alternatif satır rengi
             if i % 2 == 0:
                 draw.rectangle(
-                    [(margin * 2, y_pos),
-                     (total_width * 2 - margin * 2, y_pos + row_height)],
+                    [(margin, y_pos),
+                     (total_width - margin, y_pos + row_height)],
                     fill=alt_row_color
                 )
             
             # Yatay çizgi (her satırın altına)
             draw.line(
-                [(margin * 2, y_pos + row_height),
-                 (total_width * 2 - margin * 2, y_pos + row_height)],
+                [(margin, y_pos + row_height),
+                 (total_width - margin, y_pos + row_height)],
                 fill=border_color,
                 width=1
             )
             
-            x_pos = margin * 2
+            x_pos = margin
             
             # Saat
             time_text = pred['match_time']
-            text_x = get_centered_text_position(time_text, content_font, time_width * 2, x_pos * 2)
+            text_x = get_centered_text_position(time_text, content_font, time_width, x_pos)
             draw.text(
-                (text_x, y_pos + (row_height - content_font_size * 2) // 2),
+                (text_x, y_pos + (row_height - content_font_size) // 2),
                 time_text,
                 font=content_font,
                 fill=text_color
@@ -429,9 +410,9 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
             # Lig
             x_pos += time_width
             league = truncate_text(pred['league'], max_league_chars)
-            league_x = x_pos * 2 + padding * 2
+            league_x = x_pos + padding
             draw.text(
-                (league_x, y_pos + (row_height - content_font_size * 2) // 2),
+                (league_x, y_pos + (row_height - content_font_size) // 2),
                 league,
                 font=content_font,
                 fill=text_color
@@ -440,9 +421,9 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
             # Maç
             x_pos += league_width
             match = truncate_text(f"{pred['home_team']} - {pred['away_team']}", max_match_chars)
-            match_x = x_pos * 2 + padding * 2
+            match_x = x_pos + padding
             draw.text(
-                (match_x, y_pos + (row_height - content_font_size * 2) // 2),
+                (match_x, y_pos + (row_height - content_font_size) // 2),
                 match,
                 font=content_font,
                 fill=text_color
@@ -451,9 +432,9 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
             # Tahmin
             x_pos += match_width
             prediction = pred['ht_goal_prediction']
-            text_x = get_centered_text_position(prediction, content_font, prediction_width * 2, x_pos * 2)
+            text_x = get_centered_text_position(prediction, content_font, prediction_width, x_pos)
             draw.text(
-                (text_x, y_pos + (row_height - content_font_size * 2) // 2),
+                (text_x, y_pos + (row_height - content_font_size) // 2),
                 prediction,
                 font=content_font,
                 fill=text_color
@@ -462,9 +443,9 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
             # İY 0.5 Üst Yüzdesi
             x_pos += prediction_width
             over_05_text = f"%{pred['over_05_ht_percent']}"
-            text_x = get_centered_text_position(over_05_text, content_font, percent_width * 2, x_pos * 2)
+            text_x = get_centered_text_position(over_05_text, content_font, percent_width, x_pos)
             draw.text(
-                (text_x, y_pos + (row_height - content_font_size * 2) // 2),
+                (text_x, y_pos + (row_height - content_font_size) // 2),
                 over_05_text,
                 font=content_font,
                 fill=text_color
@@ -473,9 +454,9 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
             # İY 1.5 Üst Yüzdesi
             x_pos += percent_width
             over_15_text = f"%{pred['over_15_ht_percent']}"
-            text_x = get_centered_text_position(over_15_text, content_font, percent_width * 2, x_pos * 2)
+            text_x = get_centered_text_position(over_15_text, content_font, percent_width, x_pos)
             draw.text(
-                (text_x, y_pos + (row_height - content_font_size * 2) // 2),
+                (text_x, y_pos + (row_height - content_font_size) // 2),
                 over_15_text,
                 font=content_font,
                 fill=text_color
@@ -485,38 +466,35 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
         
         # Dış kenarlık
         draw.rectangle(
-            [(margin * 2, margin * 2 + title_height),
-             (total_width * 2 - margin * 2, total_height * 2 - margin * 2)],
+            [(margin, margin + title_height),
+             (total_width - margin, total_height - margin)],
             outline=header_bg_color,
             width=2
         )
         
         # Dikey çizgiler
-        x_pos = margin * 2
+        x_pos = margin
         for width in widths[:-1]:  # Son sütun hariç her sütun arasına çizgi
             x_pos += width
             draw.line(
-                [(x_pos * 2, margin * 2 + title_height),
-                 (x_pos * 2, total_height * 2 - margin * 2)],
+                [(x_pos, margin + title_height),
+                 (x_pos, total_height - margin)],
                 fill=border_color,
                 width=2
             )
         
         # Başlık altı çizgisi (kalın)
-        y_pos = margin * 2 + title_height + header_height
+        y_pos = margin + title_height + header_height
         draw.line(
-            [(margin * 2, y_pos),
-             (total_width * 2 - margin * 2, y_pos)],
+            [(margin, y_pos),
+             (total_width - margin, y_pos)],
             fill=header_bg_color,
             width=2
         )
         
-        # Son olarak görüntüyü orijinal boyuta küçült
-        img = img.resize((total_width, total_height), Image.Resampling.LANCZOS)
-        
-        # Görüntüyü kaydet (yüksek kalite)
+        # Görüntüyü kaydet
         image_path = f'ht_goals_table_{group_index}.png'
-        img.save(image_path, quality=95, dpi=(300, 300))
+        img.save(image_path)
         image_paths.append(image_path)
     
     return image_paths
