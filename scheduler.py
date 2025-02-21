@@ -377,7 +377,7 @@ def run_scheduler():
     schedule.every().day.at("11:30").do(send_ht_goals_list)
     
     # İyi geceler mesajı
-    schedule.every().day.at("00:20").do(send_good_night)
+    schedule.every().day.at("21:20").do(send_good_night)
     
     while True:
         try:
