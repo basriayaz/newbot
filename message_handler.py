@@ -262,13 +262,45 @@ def get_ht_goals_predictions() -> List[Dict[str, Any]]:
         if 'conn' in locals():
             conn.close()
 
+def get_default_font(size: int):
+    """Varsayılan fontu döndürür"""
+    # Font arama yolları
+    font_paths = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Linux
+        "/usr/share/fonts/TTF/DejaVuSans.ttf",              # Linux alternatif
+        "/System/Library/Fonts/Arial.ttf",                   # macOS
+        "C:\\Windows\\Fonts\\Arial.ttf",                     # Windows
+        "/usr/share/fonts/truetype/freefont/FreeSans.ttf",  # Linux alternatif
+    ]
+    
+    # Mevcut fontları dene
+    for font_path in font_paths:
+        try:
+            if os.path.exists(font_path):
+                return ImageFont.truetype(font_path, size)
+        except Exception as e:
+            logging.warning(f"Font yüklenemedi ({font_path}): {str(e)}")
+            continue
+    
+    # Hiçbir font bulunamazsa PIL'in varsayılan fontunu kullan
+    try:
+        # PIL'in varsayılan fontunu yükle ve boyutunu ayarla
+        default_font = ImageFont.load_default()
+        # Boyut ayarlaması için yeni bir font oluştur
+        enlarged_font = ImageFont.truetype("DejaVuSans.ttf", size)
+        return enlarged_font
+    except Exception as e:
+        logging.error(f"Varsayılan font yüklenirken hata: {str(e)}")
+        # En son çare olarak PIL'in temel fontunu kullan
+        return ImageFont.load_default()
+
 def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
     """İlk yarı gol tahminlerini görsel tablo olarak oluşturur"""
     
-    # Font boyutları
-    title_font_size = 48
-    header_font_size = 36
-    content_font_size = 32
+    # Font boyutları - daha büyük boyutlar
+    title_font_size = 64
+    header_font_size = 48
+    content_font_size = 40
     
     # Renk tanımları
     background_color = (240, 242, 245)  # Arka plan rengi
@@ -285,35 +317,16 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
     prediction_width = 180 # Tahmin sütunu genişliği
     percent_width = 180   # Yüzde sütunları genişliği
     
-    # Satır yüksekliği ve kenar boşlukları
-    row_height = 60
-    header_height = 80
-    title_height = 100
-    margin = 40
-    padding = 20
+    # Satır yüksekliği ve kenar boşlukları - artırılmış değerler
+    row_height = 70
+    header_height = 90
+    title_height = 120
+    margin = 50
+    padding = 25
     
     # Maksimum karakter uzunlukları
     max_league_chars = 20
     max_match_chars = 40
-    
-    def get_default_font(size: int):
-        """Varsayılan fontu döndürür"""
-        try:
-            # Önce DejaVuSans'ı dene (Linux sistemlerde genellikle var)
-            return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", size)
-        except:
-            try:
-                # Sonra Arial'i dene (Windows sistemlerde genellikle var)
-                return ImageFont.truetype("Arial", size)
-            except:
-                try:
-                    # Son olarak sistemdeki herhangi bir TrueType fontu dene
-                    return ImageFont.truetype("/usr/share/fonts/truetype/freefont/FreeSans.ttf", size)
-                except:
-                    # Hiçbiri yoksa varsayılan fontu kullan
-                    default_font = ImageFont.load_default()
-                    # Varsayılan fontu büyüt
-                    return ImageFont.TransposedFont(default_font, size * 2)
     
     def truncate_text(text: str, max_chars: int) -> str:
         """Metni belirli bir uzunlukta kısaltır"""
