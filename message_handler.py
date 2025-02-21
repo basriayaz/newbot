@@ -8,7 +8,6 @@ import logging
 from PIL import Image, ImageDraw, ImageFont
 import google.generativeai as genai
 import pytz
-import urllib.request
 
 # .env dosyasını yükle
 load_dotenv()
@@ -263,35 +262,31 @@ def get_ht_goals_predictions() -> List[Dict[str, Any]]:
         if 'conn' in locals():
             conn.close()
 
-def get_default_font(size: int):
-    """Varsayılan fontu döndürür"""
-    try:
-        # PIL'in varsayılan fontunu yükle
-        default_font = ImageFont.load_default()
-        
-        # Boyutu artırmak için yeni bir font oluştur
-        # size parametresini 1.5 ile çarp ki daha büyük olsun
-        enlarged_size = int(size * 1.5)
-        
-        try:
-            # Önce TrueType font olarak yüklemeyi dene
-            return ImageFont.truetype(font=default_font, size=enlarged_size)
-        except Exception:
-            # TrueType olarak yükleme başarısız olursa bitmap font kullan
-            return ImageFont.load_default()
-            
-    except Exception as e:
-        logging.error(f"Font yüklenirken hata: {str(e)}")
-        # En son çare olarak PIL'in temel fontunu kullan
-        return ImageFont.load_default()
-
 def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
     """İlk yarı gol tahminlerini görsel tablo olarak oluşturur"""
     
-    # Font boyutları - daha da büyük boyutlar
-    title_font_size = 96
-    header_font_size = 72
-    content_font_size = 64
+    # Font paths
+    FONT_PATHS = [
+        "/System/Library/Fonts/NotoSansArmenian.ttc",  # Primary font
+        "/System/Library/Fonts/Helvetica.ttc",         # Fallback font 1
+        "/System/Library/Fonts/Arial Unicode.ttf"      # Fallback font 2
+    ]
+    
+    def get_available_font(size: int) -> ImageFont.FreeTypeFont:
+        """Kullanılabilir bir font döndürür"""
+        for font_path in FONT_PATHS:
+            try:
+                return ImageFont.truetype(font_path, size)
+            except Exception as e:
+                logging.warning(f"Font yüklenemedi ({font_path}): {e}")
+                continue
+        logging.error("Hiçbir font yüklenemedi, varsayılan font kullanılıyor")
+        return ImageFont.load_default()
+    
+    # Font boyutları
+    title_font_size = 48
+    header_font_size = 36
+    content_font_size = 28
     
     # Renk tanımları
     background_color = (240, 242, 245)  # Arka plan rengi
@@ -301,19 +296,19 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
     border_color = (189, 195, 199)      # Şık gri kenarlık
     alt_row_color = (236, 240, 241)     # Alternatif satır rengi
     
-    # Sütun genişlikleri - daha da artırılmış değerler
-    time_width = 200      # Saat sütunu genişliği
-    league_width = 400    # Lig sütunu genişliği
-    match_width = 800     # Maç sütunu genişliği
-    prediction_width = 250 # Tahmin sütunu genişliği
-    percent_width = 250   # Yüzde sütunları genişliği
+    # Sütun genişlikleri
+    time_width = 120      # Saat sütunu genişliği
+    league_width = 300    # Lig sütunu genişliği
+    match_width = 600     # Maç sütunu genişliği
+    prediction_width = 180 # Tahmin sütunu genişliği
+    percent_width = 180   # Yüzde sütunları genişliği
     
-    # Satır yüksekliği ve kenar boşlukları - daha da artırılmış değerler
-    row_height = 100
-    header_height = 120
-    title_height = 160
-    margin = 80
-    padding = 40
+    # Satır yüksekliği ve kenar boşlukları
+    row_height = 55
+    header_height = 80
+    title_height = 100
+    margin = 40
+    padding = 20
     
     # Maksimum karakter uzunlukları
     max_league_chars = 20
@@ -352,9 +347,9 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
         draw = ImageDraw.Draw(img)
         
         # Fontları yükle
-        title_font = get_default_font(title_font_size)
-        header_font = get_default_font(header_font_size)
-        content_font = get_default_font(content_font_size)
+        title_font = get_available_font(title_font_size)
+        header_font = get_available_font(header_font_size)
+        content_font = get_available_font(content_font_size)
         
         # Başlık
         title_text = f"İlk Yarı Gol Listesi {group_index}/{len(prediction_groups)}"
