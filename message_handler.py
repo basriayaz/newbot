@@ -265,21 +265,50 @@ def get_ht_goals_predictions() -> List[Dict[str, Any]]:
 def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
     """İlk yarı gol tahminlerini görsel tablo olarak oluşturur"""
     
-    # Font paths
+    # Font paths - Local fonts directory
     FONT_PATHS = [
-        "/System/Library/Fonts/NotoSansArmenian.ttc",  # Primary font
-        "/System/Library/Fonts/Helvetica.ttc",         # Fallback font 1
-        "/System/Library/Fonts/Arial Unicode.ttf"      # Fallback font 2
+        "fonts/Helvetica.ttf",         # Primary font
+        "fonts/Arial.ttf",             # Fallback font 1
+        "fonts/DejaVuSans.ttf"         # Fallback font 2
     ]
     
     def get_available_font(size: int) -> ImageFont.FreeTypeFont:
         """Kullanılabilir bir font döndürür"""
+        # Önce fonts klasörünün varlığını kontrol et
+        if not os.path.exists('fonts'):
+            os.makedirs('fonts')
+            logging.info("fonts klasörü oluşturuldu")
+        
+        # Font dosyalarının varlığını kontrol et
+        missing_fonts = [font for font in FONT_PATHS if not os.path.exists(font)]
+        if missing_fonts:
+            logging.warning(f"Eksik font dosyaları: {missing_fonts}")
+            logging.warning("Lütfen font dosyalarını fonts/ klasörüne ekleyin")
+        
+        # Mevcut fontları dene
         for font_path in FONT_PATHS:
             try:
-                return ImageFont.truetype(font_path, size)
+                if os.path.exists(font_path):
+                    return ImageFont.truetype(font_path, size)
             except Exception as e:
                 logging.warning(f"Font yüklenemedi ({font_path}): {e}")
                 continue
+        
+        # Sistem fontlarını dene
+        system_fonts = [
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Linux
+            "/System/Library/Fonts/Helvetica.ttc",              # macOS
+            "C:\\Windows\\Fonts\\arial.ttf"                     # Windows
+        ]
+        
+        for font_path in system_fonts:
+            try:
+                if os.path.exists(font_path):
+                    return ImageFont.truetype(font_path, size)
+            except Exception as e:
+                logging.warning(f"Sistem fontu yüklenemedi ({font_path}): {e}")
+                continue
+        
         logging.error("Hiçbir font yüklenemedi, varsayılan font kullanılıyor")
         return ImageFont.load_default()
     
