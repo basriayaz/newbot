@@ -268,7 +268,7 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
     # Font boyutları
     title_font_size = 48
     header_font_size = 36
-    content_font_size = 28
+    content_font_size = 32
     
     # Renk tanımları
     background_color = (240, 242, 245)  # Arka plan rengi
@@ -286,7 +286,7 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
     percent_width = 180   # Yüzde sütunları genişliği
     
     # Satır yüksekliği ve kenar boşlukları
-    row_height = 55
+    row_height = 60
     header_height = 80
     title_height = 100
     margin = 40
@@ -295,6 +295,25 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
     # Maksimum karakter uzunlukları
     max_league_chars = 20
     max_match_chars = 40
+    
+    def get_default_font(size: int):
+        """Varsayılan fontu döndürür"""
+        try:
+            # Önce DejaVuSans'ı dene (Linux sistemlerde genellikle var)
+            return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", size)
+        except:
+            try:
+                # Sonra Arial'i dene (Windows sistemlerde genellikle var)
+                return ImageFont.truetype("Arial", size)
+            except:
+                try:
+                    # Son olarak sistemdeki herhangi bir TrueType fontu dene
+                    return ImageFont.truetype("/usr/share/fonts/truetype/freefont/FreeSans.ttf", size)
+                except:
+                    # Hiçbiri yoksa varsayılan fontu kullan
+                    default_font = ImageFont.load_default()
+                    # Varsayılan fontu büyüt
+                    return ImageFont.TransposedFont(default_font, size * 2)
     
     def truncate_text(text: str, max_chars: int) -> str:
         """Metni belirli bir uzunlukta kısaltır"""
@@ -328,14 +347,10 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
         img = Image.new('RGB', (total_width, total_height), background_color)
         draw = ImageDraw.Draw(img)
         
-        try:
-            title_font = ImageFont.truetype("Arial.ttf", title_font_size)
-            header_font = ImageFont.truetype("Arial.ttf", header_font_size)
-            content_font = ImageFont.truetype("Arial.ttf", content_font_size)
-        except:
-            title_font = ImageFont.load_default()
-            header_font = ImageFont.load_default()
-            content_font = ImageFont.load_default()
+        # Fontları yükle
+        title_font = get_default_font(title_font_size)
+        header_font = get_default_font(header_font_size)
+        content_font = get_default_font(content_font_size)
         
         # Başlık
         title_text = f"İlk Yarı Gol Listesi {group_index}/{len(prediction_groups)}"
