@@ -265,10 +265,32 @@ def get_ht_goals_predictions() -> List[Dict[str, Any]]:
 def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
     """İlk yarı gol tahminlerini görsel tablo olarak oluşturur"""
     
-    # Font boyutları
-    title_font_size = 48
-    header_font_size = 36
-    content_font_size = 28
+    # Font boyutları (büyütüldü)
+    title_font_size = 72
+    header_font_size = 54
+    content_font_size = 42
+    
+    # Font yükleme fonksiyonu
+    def load_font(size: int, is_bold: bool = False) -> ImageFont.FreeTypeFont:
+        """Fontu yükler, bulamazsa varsayılan fontu kullanır"""
+        try:
+            # Önce Arial'i dene
+            font_path = "Arial.ttf" if not is_bold else "Arial Bold.ttf"
+            return ImageFont.truetype(font_path, size)
+        except:
+            try:
+                # Arial bulunamazsa DejaVuSans dene (Linux sistemlerde genelde vardır)
+                font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf" if not is_bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+                return ImageFont.truetype(font_path, size)
+            except:
+                try:
+                    # Son çare olarak PIL'in varsayılan fontunu kullan ve boyutu büyüt
+                    default_font = ImageFont.load_default()
+                    # Varsayılan font çok küçük olduğu için boyutu 2 katına çıkar
+                    return ImageFont.truetype(default_font.path, size * 2)
+                except:
+                    # Hiçbir şey bulunamazsa en basit varsayılan fonta dön
+                    return ImageFont.load_default()
     
     # Renk tanımları
     background_color = (240, 242, 245)  # Arka plan rengi
@@ -278,23 +300,23 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
     border_color = (189, 195, 199)      # Şık gri kenarlık
     alt_row_color = (236, 240, 241)     # Alternatif satır rengi
     
-    # Sütun genişlikleri
-    time_width = 120      # Saat sütunu genişliği
-    league_width = 300    # Lig sütunu genişliği
-    match_width = 600     # Maç sütunu genişliği
-    prediction_width = 180 # Tahmin sütunu genişliği
-    percent_width = 180   # Yüzde sütunları genişliği
+    # Sütun genişlikleri (artırıldı)
+    time_width = 180       # Saat sütunu genişliği
+    league_width = 400     # Lig sütunu genişliği
+    match_width = 800      # Maç sütunu genişliği
+    prediction_width = 250 # Tahmin sütunu genişliği
+    percent_width = 250    # Yüzde sütunları genişliği
     
-    # Satır yüksekliği ve kenar boşlukları
-    row_height = 55
-    header_height = 80
-    title_height = 100
-    margin = 40
-    padding = 20
+    # Satır yüksekliği ve kenar boşlukları (artırıldı)
+    row_height = 80
+    header_height = 100
+    title_height = 120
+    margin = 50
+    padding = 30
     
     # Maksimum karakter uzunlukları
-    max_league_chars = 20
-    max_match_chars = 40
+    max_league_chars = 25
+    max_match_chars = 45
     
     def truncate_text(text: str, max_chars: int) -> str:
         """Metni belirli bir uzunlukta kısaltır"""
@@ -328,14 +350,10 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
         img = Image.new('RGB', (total_width, total_height), background_color)
         draw = ImageDraw.Draw(img)
         
-        try:
-            title_font = ImageFont.truetype("Arial.ttf", title_font_size)
-            header_font = ImageFont.truetype("Arial.ttf", header_font_size)
-            content_font = ImageFont.truetype("Arial.ttf", content_font_size)
-        except:
-            title_font = ImageFont.load_default()
-            header_font = ImageFont.load_default()
-            content_font = ImageFont.load_default()
+        # Font yükleme
+        title_font = load_font(title_font_size, True)  # Başlık için kalın font
+        header_font = load_font(header_font_size, True)  # Başlıklar için kalın font
+        content_font = load_font(content_font_size)  # İçerik için normal font
         
         # Başlık
         title_text = f"İlk Yarı Gol Listesi {group_index}/{len(prediction_groups)}"

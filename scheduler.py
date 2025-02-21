@@ -319,22 +319,22 @@ def test_all_functions():
     set_test_mode(True)
     
     functions_to_test = [
-        ("Maç analizi", daily_match_analysis),
-        ("Günaydın mesajı", send_good_morning),
-        ("Maçlar hazır mesajı", send_daily_matches_ready),
-        ("Reklam 1", send_advertisement),  # First ad after matches ready
-        ("İlk tahmin", send_first_prediction),
-        ("İkinci tahmin", send_second_prediction),
-        ("Reklam 2", send_advertisement),  # Second ad after second prediction
-        ("Üçüncü tahmin", send_third_prediction),
-        ("Dördüncü tahmin", send_fourth_prediction),
-        ("Reklam 3", send_advertisement),  # Third ad after fourth prediction
-        ("Kupon duyurusu", send_coupon_announcement),
-        ("Günün kuponu", send_daily_coupon),
-        ("Reklam 4", send_advertisement),  # Fourth ad after daily coupon
-        ("İY gol duyurusu", send_ht_goals_announcement),
+        #("Maç analizi", daily_match_analysis),
+        #("Günaydın mesajı", send_good_morning),
+        #("Maçlar hazır mesajı", send_daily_matches_ready),
+        #("Reklam 1", send_advertisement),  # First ad after matches ready
+        #("İlk tahmin", send_first_prediction),
+        #("İkinci tahmin", send_second_prediction),
+        #("Reklam 2", send_advertisement),  # Second ad after second prediction
+        #("Üçüncü tahmin", send_third_prediction),
+        #("Dördüncü tahmin", send_fourth_prediction),
+        #("Reklam 3", send_advertisement),  # Third ad after fourth prediction
+        #("Kupon duyurusu", send_coupon_announcement),
+        #("Günün kuponu", send_daily_coupon),
+        #("Reklam 4", send_advertisement),  # Fourth ad after daily coupon
+        #("İY gol duyurusu", send_ht_goals_announcement),
         ("İY gol listesi", send_ht_goals_list),
-        ("İyi geceler mesajı", send_good_night),
+        #("İyi geceler mesajı", send_good_night),
     ]
     
     for name, func in functions_to_test:
@@ -354,27 +354,27 @@ def test_all_functions():
 def run_scheduler():
     """Zamanlanmış görevleri çalıştırır"""
     # Tüm zamanlamalar Türkiye saatine göre (UTC+3)
-    schedule.every().day.at("07:00").do(daily_match_analysis)
-    schedule.every().day.at("10:50").do(send_good_morning)
-    schedule.every().day.at("11:30").do(send_daily_matches_ready)
-    schedule.every().day.at("11:45").do(send_advertisement)  # First ad after matches ready
+    schedule.every().day.at("04:00").do(daily_match_analysis)
+    schedule.every().day.at("07:50").do(send_good_morning)
+    schedule.every().day.at("08:30").do(send_daily_matches_ready)
+    schedule.every().day.at("08:45").do(send_advertisement)  # First ad after matches ready
     
     # Maç tahminleri ve reklamlar
-    schedule.every().day.at("12:00").do(send_first_prediction)
-    schedule.every().day.at("12:03").do(send_second_prediction)
-    schedule.every().day.at("12:10").do(send_advertisement)  # Second ad after second prediction
-    schedule.every().day.at("12:30").do(send_third_prediction)
-    schedule.every().day.at("12:33").do(send_fourth_prediction)
-    schedule.every().day.at("12:40").do(send_advertisement)  # Third ad after fourth prediction
+    schedule.every().day.at("09:00").do(send_first_prediction)
+    schedule.every().day.at("09:03").do(send_second_prediction)
+    schedule.every().day.at("09:10").do(send_advertisement)  # Second ad after second prediction
+    schedule.every().day.at("09:30").do(send_third_prediction)
+    schedule.every().day.at("09:33").do(send_fourth_prediction)
+    schedule.every().day.at("09:40").do(send_advertisement)  # Third ad after fourth prediction
     
     # Kupon ve son reklam
-    schedule.every().day.at("13:00").do(send_coupon_announcement)
-    schedule.every().day.at("13:30").do(send_daily_coupon)
-    schedule.every().day.at("13:31").do(send_advertisement)  # Fourth ad after daily coupon
+    schedule.every().day.at("10:00").do(send_coupon_announcement)
+    schedule.every().day.at("10:30").do(send_daily_coupon)
+    schedule.every().day.at("10:31").do(send_advertisement)  # Fourth ad after daily coupon
     
     # İlk yarı gol listesi
-    schedule.every().day.at("14:00").do(send_ht_goals_announcement)
-    schedule.every().day.at("14:30").do(send_ht_goals_list)
+    schedule.every().day.at("11:00").do(send_ht_goals_announcement)
+    schedule.every().day.at("11:30").do(send_ht_goals_list)
     
     # İyi geceler mesajı
     schedule.every().day.at("00:20").do(send_good_night)
