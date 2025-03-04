@@ -5,7 +5,7 @@ import time
 import logging
 import asyncio
 import aiohttp
-from database import create_connection, create_tables, insert_match_info
+from database import create_connection, create_tables, insert_match_info, update_database_schema
 from typing import List, Dict, Any
 from asyncio import Semaphore
 
@@ -115,6 +115,7 @@ async def process_matches_async():
         # Veritabanı bağlantısını oluştur
         conn = create_connection()
         create_tables(conn)
+        update_database_schema(conn)
         
         # Bugünün tarihini al
         today = datetime.now().strftime("%Y-%m-%d")

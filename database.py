@@ -113,6 +113,18 @@ def create_tables(conn):
             ht1_closing REAL,
             htx_closing REAL,
             ht2_closing REAL,
+            opening_odds REAL,
+            opening_goalline REAL,
+            opening_side REAL,
+            opening_odds_ht REAL,
+            opening_goalline_ht REAL,
+            opening_side_ht REAL,
+            closing_odds REAL,
+            closing_goalline REAL,
+            closing_side REAL,
+            closing_odds_ht REAL,
+            closing_goalline_ht REAL,
+            closing_side_ht REAL,
             FOREIGN KEY (match_id) REFERENCES matches (match_id)
         )
         ''')
@@ -393,30 +405,55 @@ def insert_match_info(conn, match_data: Dict[str, Any]):
             match_data['son_10_mac']['deplasman']
         ))
         
-        # Bahis oranlarını ekle (örnek olarak Bet365)
-        if 'Bet365' in match_data['bahis_oranlari']:
-            cursor.execute('''
-            INSERT OR REPLACE INTO odds
-            (match_id, bookmaker, ms1_opening, msx_opening, ms2_opening,
-            ms1_closing, msx_closing, ms2_closing, ht1_opening, htx_opening,
-            ht2_opening, ht1_closing, htx_closing, ht2_closing)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                match_data['info']['id'],
-                'Bet365',
-                match_data['bahis_oranlari']['Bet365']['acilis']['acilis_ms1'],
-                match_data['bahis_oranlari']['Bet365']['acilis']['acilis_msx'],
-                match_data['bahis_oranlari']['Bet365']['acilis']['acilis_ms2'],
-                match_data['bahis_oranlari']['Bet365']['kapanis']['kapanis_ms1'],
-                match_data['bahis_oranlari']['Bet365']['kapanis']['kapanis_msx'],
-                match_data['bahis_oranlari']['Bet365']['kapanis']['kapanis_ms2'],
-                match_data['bahis_oranlari']['Bet365']['acilis']['acilis_iy1'],
-                match_data['bahis_oranlari']['Bet365']['acilis']['acilis_iyx'],
-                match_data['bahis_oranlari']['Bet365']['acilis']['acilis_iy2'],
-                match_data['bahis_oranlari']['Bet365']['kapanis']['kapanis_iy1'],
-                match_data['bahis_oranlari']['Bet365']['kapanis']['kapanis_iyx'],
-                match_data['bahis_oranlari']['Bet365']['kapanis']['kapanis_iy2']
-            ))
+        # Bahis oranlarını ekle (tüm bahis şirketleri için)
+        if 'bahis_oranlari' in match_data:
+            for bookmaker, odds_data in match_data['bahis_oranlari'].items():
+                try:
+                    # Acilis ve kapanis verilerinin varlığını kontrol et
+                    if 'acilis' not in odds_data or 'kapanis' not in odds_data:
+                        logging.warning(f"Bahis oranları için acilis veya kapanis verisi eksik: {bookmaker}")
+                        continue
+                        
+                    cursor.execute('''
+                    INSERT OR REPLACE INTO odds
+                    (match_id, bookmaker, ms1_opening, msx_opening, ms2_opening,
+                    ms1_closing, msx_closing, ms2_closing, ht1_opening, htx_opening,
+                    ht2_opening, ht1_closing, htx_closing, ht2_closing, opening_odds,
+                    opening_goalline, opening_side, opening_odds_ht, opening_goalline_ht,
+                    opening_side_ht, closing_odds, closing_goalline, closing_side,
+                    closing_odds_ht, closing_goalline_ht, closing_side_ht)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        match_data['info']['id'],
+                        bookmaker,
+                        odds_data['acilis'].get('acilis_ms1', ''),
+                        odds_data['acilis'].get('acilis_msx', ''),
+                        odds_data['acilis'].get('acilis_ms2', ''),
+                        odds_data['kapanis'].get('kapanis_ms1', ''),
+                        odds_data['kapanis'].get('kapanis_msx', ''),
+                        odds_data['kapanis'].get('kapanis_ms2', ''),
+                        odds_data['acilis'].get('acilis_iy1', ''),
+                        odds_data['acilis'].get('acilis_iyx', ''),
+                        odds_data['acilis'].get('acilis_iy2', ''),
+                        odds_data['kapanis'].get('kapanis_iy1', ''),
+                        odds_data['kapanis'].get('kapanis_iyx', ''),
+                        odds_data['kapanis'].get('kapanis_iy2', ''),
+                        odds_data['acilis'].get('acilis_oran', ''),
+                        odds_data['acilis'].get('acilis_goalline', ''),
+                        odds_data['acilis'].get('acilis_taraf', ''),
+                        odds_data['acilis'].get('acilis_oran_ht', ''),
+                        odds_data['acilis'].get('acilis_goalline_ht', ''),
+                        odds_data['acilis'].get('acilis_taraf_ht', ''),
+                        odds_data['kapanis'].get('kapanis_oran', ''),
+                        odds_data['kapanis'].get('kapanis_goalline', ''),
+                        odds_data['kapanis'].get('kapanis_taraf', ''),
+                        odds_data['kapanis'].get('kapanis_oran_ht', ''),
+                        odds_data['kapanis'].get('kapanis_goalline_ht', ''),
+                        odds_data['kapanis'].get('kapanis_taraf_ht', '')
+                    ))
+                    logging.info(f"Bahis oranları eklendi: {bookmaker}")
+                except Exception as e:
+                    logging.error(f"Bahis oranları eklenirken hata oluştu ({bookmaker}): {str(e)}")
         
         # Korner oranlarını ekle
         if 'korner_oranlari' in match_data and 'Data' in match_data['korner_oranlari']:
@@ -590,6 +627,45 @@ def insert_match_info(conn, match_data: Dict[str, Any]):
         
     except Exception as e:
         error_msg = f"Maç bilgileri kaydedilirken hata: {type(e).__name__}: {str(e)}"
+        logging.error(error_msg)
+        conn.rollback()
+        raise
+
+def update_database_schema(conn):
+    """Veritabanı şemasını günceller, yeni sütunlar ekler"""
+    cursor = conn.cursor()
+    
+    try:
+        # Odds tablosunda yeni sütunların varlığını kontrol et
+        cursor.execute("PRAGMA table_info(odds)")
+        columns = [column[1] for column in cursor.fetchall()]
+        
+        # Yeni sütunları ekle
+        new_columns = {
+            "opening_odds": "REAL",
+            "opening_goalline": "REAL",
+            "opening_side": "REAL",
+            "opening_odds_ht": "REAL",
+            "opening_goalline_ht": "REAL",
+            "opening_side_ht": "REAL",
+            "closing_odds": "REAL",
+            "closing_goalline": "REAL",
+            "closing_side": "REAL",
+            "closing_odds_ht": "REAL",
+            "closing_goalline_ht": "REAL",
+            "closing_side_ht": "REAL"
+        }
+        
+        for column_name, column_type in new_columns.items():
+            if column_name not in columns:
+                cursor.execute(f"ALTER TABLE odds ADD COLUMN {column_name} {column_type}")
+                logging.info(f"Yeni sütun eklendi: {column_name}")
+        
+        conn.commit()
+        logging.info("Veritabanı şeması güncellendi")
+        
+    except Exception as e:
+        error_msg = f"Veritabanı şeması güncellenirken hata: {type(e).__name__}: {str(e)}"
         logging.error(error_msg)
         conn.rollback()
         raise

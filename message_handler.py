@@ -20,7 +20,9 @@ MAJOR_LEAGUES = [
     'Spanish La Liga',
     'English Premier League',
     'German Bundesliga',
+    'German Bundesliga 2',
     'Italian Serie A',
+    'Italian Serie B',
     'French Ligue 1',
     'Turkey Super Lig',
     'Uefa Champions League',
@@ -28,6 +30,12 @@ MAJOR_LEAGUES = [
     'Uefa Europa Conference League',
     'England Championship',
     'Uefa Nations League'
+    'Spanish La Liga 2',
+    'Liga Portugal 1',
+    'Holland Eredivisie',
+    'Belgium Pro League',
+    'Switzerland Super League',
+    'Austrian Bundesliga',
 ]
 
 # Reklam şablonları
@@ -90,10 +98,53 @@ GOOD_MORNING_MESSAGES = {
     6: "🌅 Günaydın! Pazar günü futbol şöleni ile birlikteyiz! 🎯Herkese bol kazançlı bir gün diliyorum"  # Pazar
 }
 
+# İyi geceler mesajları
+GOOD_NIGHT_MESSAGES = {
+    0: "🌙 İyi geceler! Haftanın ilk gününü geride bıraktık. Yarın yeni tahminlerle buluşmak üzere! 💤",  # Pazartesi
+    1: "🌃 İyi geceler! Bugünkü analizlerimizle kazananlar olduğunu umuyoruz. Yarın görüşmek üzere! 🌠",  # Salı
+    2: "🌉 İyi geceler! Haftanın ortasındayız, yarın yeni tahminlerle devam edeceğiz. Tatlı rüyalar! 💫",  # Çarşamba
+    3: "🌌 İyi geceler! Bugünkü maçlar umarız istediğiniz gibi geçmiştir. Yarın yeni analizlerle buradayız! 🌟",  # Perşembe
+    4: "🌆 İyi geceler! Hafta sonu maçları için hazırlıklarımız tamam. Yarın görüşmek üzere! 🏆",  # Cuma
+    5: "🌃 İyi geceler! Cumartesi maçlarını geride bıraktık. Yarın futbol şöleni devam ediyor! 💤",  # Cumartesi
+    6: "🌙 İyi geceler! Bir haftalık futbol maratonunu tamamladık. Yarın yeni bir haftaya başlıyoruz! 🌠"  # Pazar
+}
+
 READY_MESSAGES = {
-    "matches": "📢 Günün maçları hazır! Bekleyenler burada mı? 🤔\n\n⚽ Özel analizlerimiz birazdan sizlerle! 🎯",
-    "coupon": "🎯 Günün kuponu hazırlanıyor!\n\n⚽ Bekleyenler varsa biraz sonra kuponu paylaşacağız! 📈",
-    "ht_goals": "⏱ Günün İlk Yarı Gol Listesi hazırlanıyor!\n\n⚽ Özel analizlerimiz birazdan sizlerle! 🎯"
+    "matches": [
+        "📢 Günün maçları hazır! Bekleyenler burada mı? 🤔\n\n⚽ Özel analizlerimiz birazdan sizlerle! 🎯",
+        "🔔 Günün maç analizleri hazırlandı! Kazanmaya hazır mısınız? 📊\n\n⚽ Birazdan paylaşıyoruz! 🎯",
+        "📣 Dikkat! Günün maçları için analizlerimiz hazır! 🔍\n\n⚽ Tahminlerimiz birazdan yayında! 🎯",
+        "🚨 Günün maçları için özel analizlerimiz tamamlandı! 📈\n\n⚽ Birazdan sizlerle paylaşacağız! 🎯",
+        "📌 Günün maç tahminleri için hazırlıklarımız tamam! 🎮\n\n⚽ Analizlerimiz birazdan sizlerle! 🎯"
+    ],
+    "coupon": [
+        "🎯 Günün kuponu hazırlanıyor!\n\n⚽ Bekleyenler varsa biraz sonra kuponu paylaşacağız! 📈",
+        "🎫 Günün özel kuponu için son kontroller yapılıyor!\n\n⚽ Birazdan sizlerle paylaşacağız! 💰",
+        "🎲 Günün kazandıran kuponu hazır olmak üzere!\n\n⚽ Takipte kalın, birazdan yayınlıyoruz! 📊",
+        "🏆 Günün yüksek oranlı kuponu hazırlanıyor!\n\n⚽ Kazanmak isteyenler için birazdan paylaşımda olacağız! 💸",
+        "📝 Günün kuponu için son dokunuşlar yapılıyor!\n\n⚽ Birazdan sizlerle buluşacak! 🔥"
+    ],
+    "ht_goals": [
+        "⏱ Günün İlk Yarı Gol Listesi hazırlanıyor!\n\n⚽ Özel analizlerimiz birazdan sizlerle! 🎯",
+        "⌛ İlk Yarı Gol Listesi için son kontroller yapılıyor!\n\n⚽ Birazdan paylaşıyoruz! 📊",
+        "🕒 Günün İlk Yarı Gol tahminleri hazır olmak üzere!\n\n⚽ Takipte kalın, birazdan yayında! 🎯",
+        "⏰ İlk Yarı Gol Listesi için analizlerimiz tamamlandı!\n\n⚽ Birazdan sizlerle paylaşacağız! 📈",
+        "⌚ Günün İlk Yarı Gol tahminleri için hazırlıklarımız tamam!\n\n⚽ Birazdan sizlerle! 🎮"
+    ],
+    "risky": [
+        "⚠️ Günün Riskli Kuponları hazırlanıyor!\n\n⚽ Cesur olanlar için birazdan paylaşımda olacağız! 🔥",
+        "🎲 Riskli ama yüksek oranlı tahminlerimiz hazır olmak üzere!\n\n⚽ Birazdan sizlerle! 💰",
+        "🚨 Günün Riskli Kuponları için son kontroller yapılıyor!\n\n⚽ Takipte kalın, birazdan yayında! 📊",
+        "⚡ Yüksek oranlı riskli tahminlerimiz hazırlanıyor!\n\n⚽ Birazdan paylaşıyoruz! 💸",
+        "🔥 Günün Riskli Kuponları için analizlerimiz tamamlandı!\n\n⚽ Cesur olanlar için birazdan yayında! 🎯"
+    ],
+    "special": [
+        "🌟 Günün Özel Tahminleri hazırlanıyor!\n\n⚽ VIP analizlerimiz birazdan sizlerle! 💎",
+        "💎 Özel tahmin listesi için son kontroller yapılıyor!\n\n⚽ Birazdan paylaşıyoruz! 🏆",
+        "🏅 Günün Özel Tahminleri hazır olmak üzere!\n\n⚽ Takipte kalın, birazdan yayında! 📊",
+        "👑 VIP tahminlerimiz için analizlerimiz tamamlandı!\n\n⚽ Birazdan sizlerle paylaşacağız! 💰",
+        "🔮 Günün Özel Tahminleri için hazırlıklarımız tamam!\n\n⚽ Birazdan sizlerle! 🎮"
+    ]
 }
 
 # Varsayılan yorumlar listesi
@@ -210,10 +261,13 @@ def get_ht_goals_predictions() -> List[Dict[str, Any]]:
         SELECT DISTINCT m.match_id, m.league, m.home_team, m.away_team, m.match_time,
                p.ht_goal_prediction, 
                COALESCE(pc.over_05_ht_percent, '0%') as over_05_ht_percent,
-               COALESCE(pc.over_15_ht_percent, '0%') as over_15_ht_percent
+               COALESCE(pc.over_15_ht_percent, '0%') as over_15_ht_percent,
+               o.opening_goalline, o.closing_goalline,
+               o.opening_goalline_ht, o.closing_goalline_ht
         FROM matches m
         LEFT JOIN predictions p ON m.match_id = p.match_id
         LEFT JOIN percentages pc ON m.match_id = pc.match_id
+        LEFT JOIN odds o ON m.match_id = o.match_id AND o.bookmaker = 'Bet365'
         WHERE m.match_date = ?
         AND p.ht_goal_prediction IS NOT NULL
         AND LENGTH(TRIM(p.ht_goal_prediction)) > 0
@@ -237,6 +291,11 @@ def get_ht_goals_predictions() -> List[Dict[str, Any]]:
                     over_05_percent = pred[6].replace('%', '') if pred[6] else '0'
                     over_15_percent = pred[7].replace('%', '') if pred[7] else '0'
                     
+                    # İlk yarı kapanış goalline değeri 1'den küçük olan maçları filtrele
+                    closing_goalline_ht = pred[11]
+                    if closing_goalline_ht is not None and float(closing_goalline_ht) < 1:
+                        continue
+                    
                     prediction = {
                         'match_id': match_id,
                         'league': pred[1],
@@ -245,7 +304,11 @@ def get_ht_goals_predictions() -> List[Dict[str, Any]]:
                         'match_time': pred[4],
                         'ht_goal_prediction': pred[5],
                         'over_05_ht_percent': int(over_05_percent),
-                        'over_15_ht_percent': int(over_15_percent)
+                        'over_15_ht_percent': int(over_15_percent),
+                        'opening_goalline': pred[8],
+                        'closing_goalline': pred[9],
+                        'opening_goalline_ht': pred[10],
+                        'closing_goalline_ht': pred[11]
                     }
                     result.append(prediction)
                     seen_match_ids.add(match_id)
@@ -314,23 +377,26 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
     
     # Font boyutları
     title_font_size = 48
-    header_font_size = 36
+    header_font_size = 32  # Başlık font boyutunu küçülttük
     content_font_size = 28
     
     # Renk tanımları
     background_color = (240, 242, 245)  # Arka plan rengi
-    header_bg_color = (52, 152, 219)    # Mavi başlık
+    header_bg_color = (46, 204, 113)    # Yeşil başlık (önceden mavi idi)
     text_color = (44, 62, 80)           # Koyu mavi-gri metin
     header_text_color = (255, 255, 255)  # Beyaz başlık metni
     border_color = (189, 195, 199)      # Şık gri kenarlık
     alt_row_color = (236, 240, 241)     # Alternatif satır rengi
+    increase_color = (46, 204, 113)     # Yeşil (artış için)
+    decrease_color = (231, 76, 60)      # Kırmızı (azalış için)
     
     # Sütun genişlikleri
-    time_width = 120      # Saat sütunu genişliği
-    league_width = 300    # Lig sütunu genişliği
-    match_width = 600     # Maç sütunu genişliği
-    prediction_width = 180 # Tahmin sütunu genişliği
-    percent_width = 180   # Yüzde sütunları genişliği
+    time_width = 100      # Saat sütunu genişliği
+    league_width = 300    # Lig sütunu genişliği (250'den 300'e arttırıldı)
+    match_width = 550     # Maç sütunu genişliği
+    prediction_width = 150 # Tahmin sütunu genişliği
+    percent_width = 150   # Yüzde sütunları genişliği
+    goalline_width = 150  # Goalline sütunları genişliği
     
     # Satır yüksekliği ve kenar boşlukları
     row_height = 55
@@ -367,7 +433,7 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
     
     for group_index, group in enumerate(prediction_groups, 1):
         # Görsel boyutları
-        total_width = time_width + league_width + match_width + prediction_width + (percent_width * 2) + (margin * 2)
+        total_width = time_width + league_width + match_width + prediction_width + (percent_width * 2) + (goalline_width * 4) + (margin * 2)
         total_height = (title_height + header_height + 
                        (row_height * len(group)) + (margin * 2))
         
@@ -404,10 +470,12 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
             width=0
         )
         
-        # Başlık metinleri
+        # Başlık metinleri - Kısaltılmış başlıklar
         x_pos = margin
-        headers = ["Saat", "Lig", "Maç", "Tahmin", "İY 0.5 Üst", "İY 1.5 Üst"]
-        widths = [time_width, league_width, match_width, prediction_width, percent_width, percent_width]
+        headers = ["Saat", "Lig", "Maç", "Tahmin", "0.5 Üst", "1.5 Üst", 
+                  "Açılış", "Kapanış", "İY Açılış", "İY Kapanış"]
+        widths = [time_width, league_width, match_width, prediction_width, percent_width, percent_width, 
+                 goalline_width, goalline_width, goalline_width, goalline_width]
         
         for header, width in zip(headers, widths):
             text_x = get_centered_text_position(header, header_font, width, x_pos)
@@ -422,19 +490,12 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
         # İçerik
         y_pos = margin + title_height + header_height
         for i, pred in enumerate(group):
-            # Alternatif satır rengi
-            if i % 2 == 0:
-                draw.rectangle(
-                    [(margin, y_pos),
-                     (total_width - margin, y_pos + row_height)],
-                    fill=alt_row_color
-                )
-            
-            # Yatay çizgi (her satırın altına)
-            draw.line(
-                [(margin, y_pos + row_height),
+            # Her satır için dikdörtgen çiz (kenarlık için)
+            draw.rectangle(
+                [(margin, y_pos),
                  (total_width - margin, y_pos + row_height)],
-                fill=border_color,
+                fill=alt_row_color if i % 2 == 0 else background_color,
+                outline=border_color,
                 width=1
             )
             
@@ -503,6 +564,100 @@ def create_ht_goals_table_image(predictions: List[Dict[str, Any]]) -> List[str]:
                 over_15_text,
                 font=content_font,
                 fill=text_color
+            )
+            
+            # Açılış Goalline
+            x_pos += percent_width
+            opening_gl = str(pred.get('opening_goalline', '-')) if pred.get('opening_goalline') is not None else '-'
+            text_x = get_centered_text_position(opening_gl, content_font, goalline_width, x_pos)
+            draw.text(
+                (text_x, y_pos + (row_height - content_font_size) // 2),
+                opening_gl,
+                font=content_font,
+                fill=text_color
+            )
+            
+            # Kapanış Goalline - Renk kodlaması
+            x_pos += goalline_width
+            closing_gl = str(pred.get('closing_goalline', '-')) if pred.get('closing_goalline') is not None else '-'
+            text_x = get_centered_text_position(closing_gl, content_font, goalline_width, x_pos)
+            
+            # Renk kodlaması için değerleri karşılaştır
+            cell_color = text_color
+            cell_bg_color = None
+            
+            try:
+                if (pred.get('opening_goalline') is not None and 
+                    pred.get('closing_goalline') is not None):
+                    opening_val = float(pred['opening_goalline'])
+                    closing_val = float(pred['closing_goalline'])
+                    
+                    if closing_val > opening_val:
+                        cell_bg_color = increase_color
+                    elif closing_val < opening_val:
+                        cell_bg_color = decrease_color
+            except (ValueError, TypeError):
+                pass
+                
+            # Arka plan rengi varsa, önce onu çiz
+            if cell_bg_color:
+                draw.rectangle(
+                    [(x_pos, y_pos), (x_pos + goalline_width, y_pos + row_height)],
+                    fill=cell_bg_color
+                )
+                
+            draw.text(
+                (text_x, y_pos + (row_height - content_font_size) // 2),
+                closing_gl,
+                font=content_font,
+                fill=header_text_color if cell_bg_color else text_color
+            )
+            
+            # Açılış Goalline İY
+            x_pos += goalline_width
+            opening_gl_ht = str(pred.get('opening_goalline_ht', '-')) if pred.get('opening_goalline_ht') is not None else '-'
+            text_x = get_centered_text_position(opening_gl_ht, content_font, goalline_width, x_pos)
+            draw.text(
+                (text_x, y_pos + (row_height - content_font_size) // 2),
+                opening_gl_ht,
+                font=content_font,
+                fill=text_color
+            )
+            
+            # Kapanış Goalline İY - Renk kodlaması
+            x_pos += goalline_width
+            closing_gl_ht = str(pred.get('closing_goalline_ht', '-')) if pred.get('closing_goalline_ht') is not None else '-'
+            text_x = get_centered_text_position(closing_gl_ht, content_font, goalline_width, x_pos)
+            
+            # Renk kodlaması için değerleri karşılaştır
+            cell_color = text_color
+            cell_bg_color = None
+            
+            try:
+                if (pred.get('opening_goalline_ht') is not None and 
+                    pred.get('closing_goalline_ht') is not None):
+                    opening_val = float(pred['opening_goalline_ht'])
+                    closing_val = float(pred['closing_goalline_ht'])
+                    
+                    if closing_val > opening_val:
+                        cell_bg_color = increase_color
+                    elif closing_val < opening_val:
+                        cell_bg_color = decrease_color
+            except (ValueError, TypeError):
+                pass
+                
+            # Arka plan rengi varsa, önce onu çiz
+            if cell_bg_color:
+                draw.rectangle(
+                    [(x_pos, y_pos), (x_pos + goalline_width, y_pos + row_height)],
+                    fill=cell_bg_color
+                )
+                
+            draw.text(
+                (text_x, y_pos + (row_height - content_font_size) // 2),
+                closing_gl_ht,
+                font=content_font,
+                fill=header_text_color if cell_bg_color else text_color
             )
             
             y_pos += row_height
@@ -788,4 +943,13 @@ def get_good_morning_message() -> str:
 
 def get_ready_message(message_type: str) -> str:
     """Hazırlık mesajını döndürür"""
-    return READY_MESSAGES.get(message_type, "") 
+    messages = READY_MESSAGES.get(message_type, [])
+    if not messages:
+        return ""
+    return random.choice(messages)
+
+def get_good_night_message() -> str:
+    """Günün iyi geceler mesajını döndürür"""
+    # Türkiye saatine göre haftanın gününü al
+    weekday = datetime.now(TR_TIMEZONE).weekday()
+    return GOOD_NIGHT_MESSAGES.get(weekday, GOOD_NIGHT_MESSAGES[0]) 
